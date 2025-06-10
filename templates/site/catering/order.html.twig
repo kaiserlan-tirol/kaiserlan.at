@@ -1,0 +1,128 @@
+{% extends 'site/base.html.twig' %}
+
+{% block title %}Catering bestellen{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row">
+        <div class="col-md-8 offset-md-2">
+            <h1>Catering bestellen</h1>
+            
+            <div class="alert alert-info">
+                <i class="fas fa-info-circle"></i>
+                Bestelle Essen und Getränke für die LAN-Party. Die Bestellung wird erst bei Abholung oder am Ende der Veranstaltung abgerechnet.
+            </div>
+            
+            {{ form_start(form) }}
+            <div class="card">
+                <div class="card-header">
+                    <h5>Verfügbare Produkte</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        {% for product in products %}
+                            <div class="col-md-6 mb-3">
+                                <div class="card h-100 {% if product.isIncludedInFlat %}border-success{% endif %}">
+                                    <div class="card-body">
+                                        <h6 class="card-title">
+                                            {{ product.name }}
+                                            {% if product.isIncludedInFlat %}
+                                                <span class="badge badge-success">Flat-Rate</span>
+                                            {% endif %}
+                                        </h6>
+                                        {% if product.description %}
+                                            <p class="card-text">{{ product.description }}</p>
+                                        {% endif %}
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <div class="price">
+                                                {% if product.isIncludedInFlat %}
+                                                    <span class="text-success">Kostenlos</span>
+                                                {% else %}
+                                                    <strong>{{ (product.price/100) | format_currency('EUR') }}</strong>
+                                                {% endif %}
+                                            </div>
+                                            <div class="quantity-controls">
+                                                {{ form_widget(form['product' ~ product.id]) }}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                
+                <div class="card-footer">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div id="total-display">
+                            <strong>Gesamtbetrag: <span id="total-amount">0,00 €</span></strong>
+                        </div>
+                        <div>
+                            {{ form_widget(form.submit, {'attr': {'class': 'btn btn-primary btn-lg'}}) }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {{ form_end(form) }}
+            
+            <div class="mt-3 text-center">
+                <a href="{{ path('catering_menu') }}" class="btn btn-secondary">
+                    <i class="fas fa-utensils"></i> Speisekarte ansehen
+                </a>
+                <a href="{{ path('catering_orders') }}" class="btn btn-outline-primary">
+                    <i class="fas fa-list"></i> Meine Bestellungen
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+$(document).ready(function() {
+    // Calculate total price
+    function updateTotal() {
+        let total = 0;
+        $('.product-quantity').each(function() {
+            const quantity = parseInt($(this).val()) || 0;
+            const price = parseInt($(this).data('price')) || 0;
+            total += quantity * price;
+        });
+        $('#total-amount').text((total / 100).toFixed(2).replace('.', ',') + ' €');
+    }
+    
+    // Update total when quantities change
+    $('.product-quantity').on('input change', updateTotal);
+    
+    // Initialize total
+    updateTotal();
+    
+    // Add/subtract buttons functionality
+    $('.product-quantity').each(function() {
+        const input = $(this);
+        const container = input.parent();
+        
+        // Add minus button
+        const minusBtn = $('<button type="button" class="btn btn-sm btn-outline-secondary me-1">-</button>');
+        minusBtn.click(function() {
+            const currentVal = parseInt(input.val()) || 0;
+            if (currentVal > 0) {
+                input.val(currentVal - 1).trigger('change');
+            }
+        });
+        
+        // Add plus button
+        const plusBtn = $('<button type="button" class="btn btn-sm btn-outline-secondary ms-1">+</button>');
+        plusBtn.click(function() {
+            const currentVal = parseInt(input.val()) || 0;
+            const maxVal = parseInt(input.attr('max')) || 20;
+            if (currentVal < maxVal) {
+                input.val(currentVal + 1).trigger('change');
+            }
+        });
+        
+        input.before(minusBtn).after(plusBtn);
+        input.addClass('text-center').css('width', '60px');
+    });
+});
+</script>
+{% endblock %}

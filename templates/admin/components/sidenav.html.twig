@@ -51,6 +51,20 @@
             </ul>
         </li>
     {% endif %}
+
+    {% if is_granted('ROLE_ADMIN_PAYMENT') %}
+        <li class="nav-item">
+            <a class="nav-link" href="#cateringMenu" data-toggle="collapse"><i class="fas fa-utensils fa-fw"></i> Catering</a>
+            <ul id="cateringMenu" class="collapse show list-group">
+                <li class="nav-item">
+                    <a class="nav-link {% if app.request.get('_route') == 'admin_catering' %}active{% endif %}" href="{{ path('admin_catering') }}"><i class="fas fa-list fa-fw"></i> Bestellungen </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link {% if app.request.get('_route') starts with 'admin_catering_product' %}active{% endif %}" href="{{ path('admin_catering_product') }}"><i class="fas fa-shopping-basket fa-fw"></i> Produkte </a>
+                </li>
+            </ul>
+        </li>
+    {% endif %}
     {% if is_granted('ROLE_ADMIN_PAYMENT') or is_granted('ROLE_ADMIN_SEATMAP') or is_granted('ROLE_ADMIN_TOURNEY') %}
         <li class="nav-item">
             <a class="nav-link" href="#lanMenu" data-toggle="collapse"><i class="fas fa-laptop-house fa-fw"></i> LAN</a>

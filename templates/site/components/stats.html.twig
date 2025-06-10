@@ -1,9 +1,10 @@
 {% if settings.get("lan.stats.show") %}
     {% if settings.get("lan.stats.show_seats") %}
+        {# name: 'Freie Plätze', key: 'seats_free', icon: 'fas fa-chair' }, #}
         {% set display = [
             {name: 'Reservierte Plätze', key: 'seats_taken', icon: 'fas fa-user' },
             {name: 'Vorgemerkte Plätze', key: 'seats_locked', icon: 'fas fa-lock' },
-            {name: 'Freie Plätze', key: 'seats_free', icon: 'fas fa-chair' },
+            {name: 'Maximale Plätze', key: 'seats_max', icon: 'fas fa-chair' },
         ] %}
     {% else %}
         {% set display = [
@@ -14,13 +15,16 @@
     {% endif %}
     <div class="container">
         <div class="card">
-            <div class="card-body row justify-content-center">
+            <div class="card-body row justify-content-center pb-0">
                 {% for d in display %}
-                <div class="text-center col col-lg-4 col-md-6 col-sm-8 col-12 mb-1 mt-1">
+                <div class="text-center col col-lg-4 col-md-6 col-sm-8 col-12 mt-1">
                     <div style="font-size: 1.75rem;"><i class="{{ d.icon }} fa-fw"></i> <span class="text-primary">{{ stats.get(d.key) }}</span></div>
                     {{ d.name }}
                 </div>
                 {% endfor %}
+            </div>
+            <div class="card-body row mx-3 mb-1" style="font-size: 0.9rem;">
+                <p>Mehr Infos dazu findest du im <a style="display: inline" href="/seatmap">Sitzplan</a></p>
             </div>
         </div>
     </div>

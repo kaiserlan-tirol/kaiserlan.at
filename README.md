@@ -31,6 +31,8 @@ Open the printed URL in your browser and log in with a superuser credential
 
 ### Debugging
 ```bash
+# on kaiserlan plesk bash-4.4$ /.phpenv/versions/8.3/bin/php bin/console cache:clear
+
 php bin/console debug:container --env-vars
 php bin/console debug:dotenv
 

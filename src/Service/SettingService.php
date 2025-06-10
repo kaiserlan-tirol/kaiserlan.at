@@ -53,6 +53,7 @@ class SettingService
         'lan.signup.payment_details' => [self::TB_DESCRIPTION => 'Bankdaten für die Zahlung von Bestellungen', self::TB_TYPE => SettingType::HTML],
 
         'lan.seatmap.enabled' => [self::TB_DESCRIPTION => 'Sitzplanbuchungen einschalten', self::TB_TYPE => SettingType::Bool],
+        'lan.seatmap.text_above' => [self::TB_DESCRIPTION => 'Text unter der Überschrift', self::TB_TYPE => SettingType::HTML],
         'lan.seatmap.allow_booking_for_non_paid' => [self::TB_DESCRIPTION => 'Sitzplanbuchungen für nicht bezahlte Gamer erlauben', self::TB_TYPE => SettingType::Bool],
         'lan.seatmap.locked' => [self::TB_DESCRIPTION => 'Sitzplanbuchungen sperren (Kein Reservieren/Freigeben für User)', self::TB_TYPE => SettingType::Bool],
         'lan.seatmap.bg_image' => [self::TB_DESCRIPTION => 'Sitzplan Hintergrundbild', self::TB_TYPE => SettingType::File],

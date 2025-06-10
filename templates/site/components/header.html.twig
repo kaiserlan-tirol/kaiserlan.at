@@ -1,4 +1,10 @@
-<div class="head-wrap {% if startpage is defined %}startpage{% endif %}" style="background: linear-gradient(-63deg,rgba(0,136,233,0.05), rgba(0,136,233,0.3)), linear-gradient( rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.8) ), url({{ settings.get('style.bg_image') }})">
+
+<div class="head-wrap {% if startpage is defined %}startpage{% endif %}" style="background-image: radial-gradient(circle, rgba(20,20,122,0.5) 20%, rgba(0,212,255,0) 100%), url({{ settings.get('style.bg_image') }})">
+    {% if startpage is defined %}
+    <div class="videobox flex-column">
+        <video class="w-100" autoplay="" loop="" muted="" playsinline="" preload="auto"><source type="video/mp4" src="/kaiserlan-hero-2-med-10.mp4"></video>
+    </div>
+    {% endif %}    <!-- linear-gradient(-63deg,rgba(0,136,233,0.05), rgba(0,136,233,0.2)), linear-gradient( rgba(0, 0, 0, 0.1), rgba(0, 0, 0, 0.3) )"> -->
     <div class="head-content container">
         {% set logo = settings.get('style.logo') %}
         {% if startpage is not defined %}<a href="/">{% endif %}
@@ -8,6 +14,9 @@
             <img class="logo {% if settings.get('style.logo_full_height') %}logo-full-height{% endif %}" src="{{ logo }}" alt="Logo">
         {% endif %}
         {% if startpage is not defined %}</a>{% endif %}
+        {% if startpage is defined %}
+        <div class="text-next-lanparty">{{helpers.toShortDate(settings.get("lan.party.start"), 'd.m.')}} {% if settings.get("lan.party.start") %} - {{helpers.toShortDate(settings.get("lan.party.end"), 'd.m.Y')}}{% endif %}</div>
+        {% endif %}
         {% block headerContent %}
         {% endblock %}
     </div>
@@ -18,3 +27,46 @@
         {%  include 'site/components/nav/navMain.html.twig' %}
     </div>
 {% endblock %}
+<style>
+    #header .head-wrap {
+        background-color: transparent;
+        background-position: center;
+        background-repeat: no-repeat;
+        background-size: cover;
+    }
+    #header .head-wrap.startpage {
+        height: 80vh;
+        position: relative;
+    }
+
+    .videobox {
+        height: 100%;
+        overflow: hidden;
+        pointer-events: none;
+        width: 100%;
+        z-index: -1000;
+        top: 0;
+    }
+    .videobox video {
+        margin-top: -15vh;
+    }
+
+    .vid-overlay,.videobox {
+        background: rgba(0,0,0,.6);
+        left: 0;
+        position: absolute;
+    }
+
+    .vid-overlay {
+        bottom: 0;
+        right: 0;
+        z-index: -999
+    }
+
+    .text-next-lanparty {
+        color: #FFF;
+        font-size: 2.8rem;
+        margin-top: 1rem;
+        margin-bottom: 20vh;
+    }
+</style>

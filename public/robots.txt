@@ -1,0 +1,6 @@
+User-agent: *
+Allow: /
+Disallow: /user
+Disallow: /admin
+Disallow: /teamsite
+Disallow: /impressum

@@ -1,4 +1,7 @@
 <div class="dropdown d-inline-block">
+    <a href="{{ path('register') }}" class="btn btn-link">
+        <i class="fas fa-user-plus"></i> Registrieren
+    </a>
     <button type="button" id="dropdownMenuUser" data-toggle="dropdown" class="btn btn-link dropdown-toggle">
         <i class="fas fa-user-circle"></i> Anmelden
     </button>
@@ -33,9 +36,10 @@
                 </div>
                 <input type="hidden" name="_target_path" value="{{ app.request.uri }}"/>
             </form>
-        </li>
-        <li class="p-3 text-center bg-dark text-light">
-            Neu? <a href="{{ path('register') }}">Account erstellen</a>
+
+            <div clsas="text-center"><strong><i>oder</i></strong><br /></div>
+
+            <a class="btn btn-primary btn-block" href="{{ path('register') }}">Registrieren</a>
         </li>
     </ul>
 </div>

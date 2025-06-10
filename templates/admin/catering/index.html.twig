@@ -1,0 +1,61 @@
+{% extends 'admin/adminBase.html.twig' %}
+
+{% block title %}Catering Bestellungen - KLMS - Admin{% endblock %}
+{% block siteheading %}<i class="fas fa-utensils"></i> Catering Bestellungen{% endblock %}
+{% block main %}
+    <div class="row">
+        <div class="col-12">
+            <div class="mb-2">
+                <a href="{{ path('admin_catering_order_export') }}" class="btn btn-sm btn-primary">
+                    <i class="fas fa-download"></i> Export CSV
+                </a>
+                <a href="{{ path('admin_catering_product') }}" class="btn btn-sm btn-secondary">
+                    <i class="fas fa-utensils"></i> Produkte verwalten
+                </a>
+            </div>
+            <div class="card">
+                <table class="table table-striped admin-data-table" data-order="[[ 2, &quot;desc&quot; ]]">
+                    <thead>
+                        <tr>
+                            <th class="text-nowrap w-1">&#8470;</th>
+                            <th class="w-25">Besteller</th>
+                            <th class="w-25">Datum</th>
+                            <th class="text-nowrap w-1">Artikel</th>
+                            <th>Betrag</th>
+                            <th>Status</th>
+                            <th class="text-nowrap w-1" data-orderable="false" data-searchable="false">Aktionen</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    {% for order in orders %}
+                        <tr>
+                            <td class="text-center">{{ order.id }}</td>
+                            <td data-order="{{ order.orderer | username }}">{{ order.orderer | username }}</td>
+                            <td data-order="{{ order.createdAt | date('U') }}">{{ order.createdAt | date('d.m.y H:i') }}</td>
+                            <td class="text-center">{{ order.totalItems }}</td>
+                            {% set total = order.calculateTotal %}
+                            <td class="text-right" data-order="{{ total }}">{{ (total/100) | format_currency('EUR') }}</td>
+                            <td>
+                                {% if order.isOpen %}
+                                    <span class="badge badge-info">Offen</span>
+                                {% elseif order.isActive %}
+                                    <span class="badge badge-primary">Bezahlt</span>
+                                {% elseif order.isCanceled %}
+                                    <span class="badge badge-light-muted">Storniert</span>
+                                {% elseif order.isRefunded %}
+                                    <span class="badge badge-light-muted">Rückerstattet</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <a class="btn btn-sm btn-outline-dark text-nowrap" data-toggle="ajaxModal" href="{{ path('admin_catering_show', {'id': order.id}) }}">
+                                    <i class="fas fa-eye"></i> Details
+                                </a>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+{% endblock %}

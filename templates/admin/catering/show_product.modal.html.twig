@@ -1,0 +1,79 @@
+{% embed "modules/modals/skeleton.html.twig"
+    with {
+    'id': 'showCateringProductModal',
+    'title' : product.id ? 'Catering Produkt bearbeiten' : 'Neues Catering Produkt',
+    'dialogClass' : 'modal-lg'
+} %}
+    {% block modalBody %}
+        <div class="container-fluid">
+            {{ form_start(form) }}
+            <div class="form-group">
+                {{ form_label(form.name) }}
+                {{ form_widget(form.name, {'attr': {'class': 'form-control'}}) }}
+                {{ form_errors(form.name) }}
+            </div>
+            
+            <div class="form-group">
+                {{ form_label(form.description) }}
+                {{ form_widget(form.description, {'attr': {'class': 'form-control', 'rows': 3}}) }}
+                {{ form_errors(form.description) }}
+            </div>
+            
+            <div class="form-row">
+                <div class="form-group col-md-6">
+                    {{ form_label(form.price) }}
+                    {{ form_widget(form.price, {'attr': {'class': 'form-control'}}) }}
+                    {{ form_errors(form.price) }}
+                </div>
+                <div class="form-group col-md-6">
+                    {{ form_label(form.productCode) }}
+                    {{ form_widget(form.productCode, {'attr': {'class': 'form-control'}}) }}
+                    {{ form_errors(form.productCode) }}
+                </div>
+            </div>
+            
+            <div class="form-row">
+                <div class="form-group col-md-6">
+                    <div class="form-check">
+                        {{ form_widget(form.active, {'attr': {'class': 'form-check-input'}}) }}
+                        {{ form_label(form.active, null, {'label_attr': {'class': 'form-check-label'}}) }}
+                    </div>
+                    {{ form_errors(form.active) }}
+                </div>
+                <div class="form-group col-md-6">
+                    <div class="form-check">
+                        {{ form_widget(form.includedInFlat, {'attr': {'class': 'form-check-input'}}) }}
+                        {{ form_label(form.includedInFlat, null, {'label_attr': {'class': 'form-check-label'}}) }}
+                    </div>
+                    {{ form_errors(form.includedInFlat) }}
+                </div>
+            </div>
+            
+            <div class="form-group">
+                {{ form_label(form.sortIndex) }}
+                {{ form_widget(form.sortIndex, {'attr': {'class': 'form-control'}}) }}
+                {{ form_errors(form.sortIndex) }}
+            </div>
+            {{ form_end(form) }}
+        </div>
+    {% endblock %}
+
+    {% block modalFooter %}
+        {% macro confirm_button(title, href, csrf_token, class="primary", confirm=false) %}
+            <form method="post" action="{{ href }}" {% if confirm %} data-toggle="confirmModal" data-modal-title="Bestätigen" data-modal-text="Sind Sie sicher?" {% endif %}>
+                <input type="hidden" name="_token" value="{{ csrf_token(csrf_token) }}">
+                <button type="submit" class="btn btn-sm btn-{{ class }}">{{ title }}</button>
+            </form>
+        {% endmacro %}
+
+        {% if product.id and csrf_token is defined %}
+            {{ _self.confirm_button('Löschen', path('admin_catering_product_delete', { 'id': product.id }), csrf_token, "danger", true) }}
+        {% endif %}
+        
+        <button type="button" class="btn btn-sm btn-secondary" data-dismiss="modal">Abbrechen</button>
+        
+        <button type="submit" form="{{ form.vars.id }}" class="btn btn-sm btn-primary">
+            <i class="fas fa-save"></i> Speichern
+        </button>
+    {% endblock %}
+{% endembed %}

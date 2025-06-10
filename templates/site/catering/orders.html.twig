@@ -1,0 +1,89 @@
+{% extends 'site/base.html.twig' %}
+
+{% block title %}Meine Catering Bestellungen{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row">
+        <div class="col-12">
+            <h1>Meine Catering Bestellungen</h1>
+            
+            <div class="mb-3">
+                <a href="{{ path('catering_order') }}" class="btn btn-primary">
+                    <i class="fas fa-plus"></i> Neue Bestellung
+                </a>
+                <a href="{{ path('catering_menu') }}" class="btn btn-secondary">
+                    <i class="fas fa-utensils"></i> Speisekarte
+                </a>
+            </div>
+            
+            {% if orders | length > 0 %}
+                {% for order in orders %}
+                    <div class="card mb-3">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0">Bestellung #{{ order.id }}</h5>
+                            <div>
+                                {% if order.isOpen %}
+                                    <span class="badge badge-warning">Offen</span>
+                                {% elseif order.isActive %}
+                                    <span class="badge badge-success">Bezahlt</span>
+                                {% elseif order.isCanceled %}
+                                    <span class="badge badge-secondary">Storniert</span>
+                                {% elseif order.isRefunded %}
+                                    <span class="badge badge-info">Rückerstattet</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-8">
+                                    <p><strong>Bestellt am:</strong> {{ order.createdAt | date('d.m.Y H:i') }}</p>
+                                    
+                                    <h6>Bestellte Artikel:</h6>
+                                    <table class="table table-sm">
+                                        {% for position in order.cateringOrderPositions %}
+                                            <tr>
+                                                <td>{{ position.productName }}</td>
+                                                <td class="text-center">{{ position.quantity }}x</td>
+                                                <td class="text-right">{{ (position.totalPrice/100) | format_currency('EUR') }}</td>
+                                            </tr>
+                                        {% endfor %}
+                                        <tr class="font-weight-bold">
+                                            <td colspan="2">Gesamt</td>
+                                            <td class="text-right">{{ (order.calculateTotal/100) | format_currency('EUR') }}</td>
+                                        </tr>
+                                    </table>
+                                </div>
+                                <div class="col-md-4">
+                                    {% if order.isOpen %}
+                                        <form method="post" class="mb-2">
+                                            <input type="hidden" name="_token" value="{{ csrf_token(csrf_token_cancel) }}">
+                                            <input type="hidden" name="order-id" value="{{ order.id }}">
+                                            <button type="submit" name="action" value="cancel" class="btn btn-warning btn-sm" onclick="return confirm('Bestellung wirklich stornieren?')">
+                                                <i class="fas fa-times"></i> Stornieren
+                                            </button>
+                                        </form>
+                                    {% endif %}
+                                    
+                                    <p class="mb-1">
+                                        <strong>{{ order.totalItems }}</strong> Artikel
+                                    </p>
+                                    <p class="mb-0">
+                                        <strong>{{ (order.calculateTotal/100) | format_currency('EUR') }}</strong>
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+            {% else %}
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle"></i>
+                    Du hast noch keine Catering-Bestellungen aufgegeben.
+                    <a href="{{ path('catering_order') }}" class="alert-link">Jetzt bestellen!</a>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,72 @@
+{% extends 'admin/adminBase.html.twig' %}
+
+{% block title %}Catering Produkte - KLMS - Admin{% endblock %}
+{% block siteheading %}<i class="fas fa-utensils"></i> Catering Produkte{% endblock %}
+{% block main %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <h1>Catering Produkte</h1>
+            <div class="mb-3">
+                <a href="{{ path('admin_catering_product_new') }}" class="btn btn-success" data-toggle="ajaxModal">
+                    <i class="fas fa-plus"></i> Neues Produkt
+                </a>
+            </div>
+            <div class="card">
+                <table class="table table-striped admin-data-table" data-order="[[ 3, &quot;asc&quot; ], [ 4, &quot;asc&quot; ]]" id="productTable">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Status</th>
+                            <th>Verkäufe</th>
+                            <th>Sortierung</th>
+                            <th>Name</th>
+                            <th>Flat-Rate</th>
+                            <th>Preis</th>
+                            <th>Produktcode</th>
+                            <th>Aktionen</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    {% for product in products %}
+                        <tr>
+                            <td class="text-center">{{ product.id }}</td>
+                            <td class="text-center" data-order="{{ product.isActive }}">
+                                <a href="{{ path('admin_catering_product_toggle', {'id' : product.id}) }}" title="Sichtbarkeit ändern">
+                                    {% if product.isActive %}
+                                        <i class="fas fa-eye text-success" title="aktiv"></i>
+                                    {% else %}
+                                        <i class="fas fa-eye-slash text-danger" title="inaktiv"></i>
+                                    {% endif %}
+                                </a>
+                            </td>
+                            <td class="text-center" data-order="{{ countProducts[product.id] ?? 0 }}">
+                                <span title="bestellt/bezahlt">{{ countProducts[product.id] ?? 0 }}&nbsp;/&nbsp;{{ countProductsPaid[product.id] ?? 0 }}</span>
+                            </td>
+                            <td class="text-center">{{ product.sortIndex }}</td>
+                            <td>{{ product.name }}</td>
+                            <td class="text-center" data-order="{{ product.isIncludedInFlat }}">
+                                {% if product.isIncludedInFlat %}
+                                    <i title="In der Flatrate enthalten" class="fa-solid fa-check text-success"></i>
+                                {% endif %}
+                            </td>
+                            <td class="text-right" data-order="{{ product.price }}">{{ (product.price/100) | format_currency('EUR') }}</td>
+                            <td class="text-center">
+                                {% if product.productCode %}
+                                    <code>{{ product.productCode }}</code>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <a class="btn btn-sm btn-outline-dark text-nowrap" data-toggle="ajaxModal" href="{{ path('admin_catering_product_edit', {'id' : product.id}) }}">
+                                    <i class="fas fa-edit"></i> Details
+                                </a>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

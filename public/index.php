@@ -14,7 +14,8 @@ if (!function_exists('pdie')) {
 
 return function (array $context) {
     if ($context['APP_ENV'] == 'dev') {
-        ini_set('memory_limit', '256M');
+        error_reporting(E_ALL ^ E_DEPRECATED);
+        // ini_set('memory_limit', '256M');
     }
 
     return new Kernel($context['APP_ENV'], (bool) $context['APP_DEBUG']);

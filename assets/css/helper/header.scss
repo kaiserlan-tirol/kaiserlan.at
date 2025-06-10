@@ -1,10 +1,43 @@
 @import 'variables';
+#header {
+    .videobox {
+        display: none;
+        height: 100%;
+        overflow: hidden;
+        pointer-events: none;
+        width: 100%;
+        z-index: -1000;
+        top: 0;
+    }
 
+    .videobox video {
+        margin-top: -15vh;
+    }
+
+    .vid-overlay, .videobox {
+        background: rgba(0, 0, 0, .6);
+        left: 0;
+        position: absolute;
+    }
+
+    .vid-overlay {
+        bottom: 0;
+        right: 0;
+        z-index: -999
+    }
+
+    .text-next-lanparty {
+        color: #FFF;
+        font-size: 2.8rem;
+        margin-top: 1rem;
+        margin-bottom: 20vh;
+    }
+}
 #header .head-wrap {
     display: flex;
-    background-size: cover;
-    background-position: center center;
-    background-repeat: no-repeat;
+    background-size: cover !important;
+    background-position: center center !important;
+    background-repeat: no-repeat !important;
     box-shadow: $box-shadow;
     height: 12rem;
     background-color: $primary;
@@ -29,6 +62,7 @@
 
     &.startpage {
         height: 16rem;
+        position: relative;
         .head-content .logo {
 /*
             max-height: 5rem;
@@ -51,7 +85,13 @@
             max-height: 5rem;
         }
         &.startpage {
-            height: 16rem;
+            height: 80vh !important;
+            background-image: none !important;
+
+            .videobox {
+                display: block;
+            }
+
             .head-content .logo {
 /*
                 max-height: 7rem;
@@ -81,7 +121,7 @@
             max-height: 3rem;
         }
         &.startpage {
-            height: 23rem;
+            // height: 23rem;
             .head-content .logo {
 /*
                 max-height: 10rem;

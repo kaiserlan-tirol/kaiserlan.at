@@ -1,0 +1,94 @@
+{% extends 'site/base.html.twig' %}
+
+{% block title %}Catering Speisekarte{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row">
+        <div class="col-12">
+            <h1>Catering Speisekarte</h1>
+            
+            <div class="mb-3">
+                <a href="{{ path('catering_order') }}" class="btn btn-primary">
+                    <i class="fas fa-shopping-cart"></i> Jetzt bestellen
+                </a>
+                <a href="{{ path('catering_orders') }}" class="btn btn-outline-primary">
+                    <i class="fas fa-list"></i> Meine Bestellungen
+                </a>
+            </div>
+            
+            {% if flatProducts | length > 0 %}
+                <div class="card mb-4">
+                    <div class="card-header bg-success text-white">
+                        <h4 class="mb-0">
+                            <i class="fas fa-check-circle"></i> 
+                            In der Flatrate enthalten
+                        </h4>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            {% for product in flatProducts %}
+                                <div class="col-md-6 col-lg-4 mb-3">
+                                    <div class="card h-100 border-success">
+                                        <div class="card-body">
+                                            <h6 class="card-title">{{ product.name }}</h6>
+                                            {% if product.description %}
+                                                <p class="card-text">{{ product.description }}</p>
+                                            {% endif %}
+                                            <div class="text-success">
+                                                <strong><i class="fas fa-check"></i> Kostenlos</strong>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
+            
+            {% if paidProducts | length > 0 %}
+                <div class="card">
+                    <div class="card-header">
+                        <h4 class="mb-0">
+                            <i class="fas fa-euro-sign"></i> 
+                            Kostenpflichtige Artikel
+                        </h4>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            {% for product in paidProducts %}
+                                <div class="col-md-6 col-lg-4 mb-3">
+                                    <div class="card h-100">
+                                        <div class="card-body">
+                                            <h6 class="card-title">{{ product.name }}</h6>
+                                            {% if product.description %}
+                                                <p class="card-text">{{ product.description }}</p>
+                                            {% endif %}
+                                            <div class="d-flex justify-content-between align-items-center">
+                                                <div>
+                                                    <strong class="text-primary">{{ (product.price/100) | format_currency('EUR') }}</strong>
+                                                </div>
+                                                {% if product.productCode %}
+                                                    <small class="text-muted">Code: {{ product.productCode }}</small>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
+            
+            {% if products | length == 0 %}
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle"></i>
+                    Derzeit sind keine Catering-Produkte verfügbar.
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

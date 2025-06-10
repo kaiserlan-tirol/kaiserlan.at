@@ -8,6 +8,14 @@
         <div class="card">
             <div class="card-body">
                 <h1 class="card-title">Sitzplan</h1>
+                {% if settings.get('lan.seatmap.text_above') %}
+                <div class="container my-2">
+                    <div class="row">
+                        {{ settings.get('lan.seatmap.text_above') | raw }}
+                    </div>
+                </div>
+                {% endif %}
+
                 {% set tempSeat = user is not empty and user is seated_user and user is not registered_user %}
                 <div class="container seatmap-legend my-3">
                     <div class="row justify-content-center">
@@ -81,16 +89,23 @@
                                     {% endif %}
                                     "
                                     data-chair-position="{{ seat.chairPosition.value }}" data-toggle="ajaxModal"
-                                    data-html="true" title="{{ include('site/seatmap/tooltip.html.twig') }}" href="{{ path('seatmap_seat_show', {'id' : seat.id}) }}"></a>
+                                    data-html="true" title="{{ include('site/seatmap/tooltip.html.twig') }}" href="{{ path('seatmap_seat_show', {'id' : seat.id}) }}">
                                     {% if taken %}
                                     {% if printView %}
                                         {% if seat.id in users | keys and users[seat.id] is not empty %}
-                                        <div style="text-align: {{ users[seat.id].nickname|length > 12 ? 'left': 'center' }}">
-                                            <span class="seat-nickname">{{ users[seat.id].nickname }}</span>
+                                        <div class="print-info">
+                                            <div class="print-nickname" style="text-align: {{ users[seat.id].nickname|length > 12 ? 'left': 'center' }}">
+                                                <!-- Sitzplatz: {{ seat.generateSeatName }}<br/> -->
+                                                {% set user = seat.id in users | keys and users[seat.id] is not empty ? users[seat.id] : null %}
+                                                {% set clan = seat.id in clans | keys and clans[seat.id] is not empty ? clans[seat.id] : null %}
+                                                {% if user %}{{ user.nickname }}{% endif %}
+                                            </div>
+                                            {% if clan %}<div class="print-clantag">{{ clan.clantag }}</div>{% endif %}
                                         </div>
                                         {% endif %}
                                     {% endif %}
                                     {% endif %}
+                                </a>
                             {% endif %}
                         {% endfor %}
                     </div>
@@ -115,9 +130,23 @@
             --seatmap-seat-border-radius: {{ settings.get('lan.seatmap.styles.seat_border_radius', 10) }}px;
         }
         {% if printView %}
-        .seat-nickname {
+        .print-info {
+            text-align: center;
+        }
+        .print-nickname {
+            max-width: 100%;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            padding-left: 1px;
+            padding-top: 4px;
             color: black;
-            font-size: 7px;
+            font-size: 6px;
+        }
+        .print-clantag {
+            color: black;
+            font-size: 5px;
+            margin-top: -1px;
         }
         .seatmap-wrapper {
             background: white;

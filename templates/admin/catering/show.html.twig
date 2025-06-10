@@ -1,0 +1,160 @@
+{% extends 'admin/adminBase.html.twig' %}
+
+{% block title %}Catering Bestellung - KLMS - Admin{% endblock %}
+{% block siteheading %}<i class="fas fa-utensils"></i> Catering Bestellung{% endblock %}
+{% block main %}tends 'admin/adminBase.html.twig' %}
+
+{% block title %}Catering Bestellung #{{ order.id }}{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row">
+        <div class="col-md-8">
+            <h2>Bestellung #{{ order.id }}</h2>
+            
+            <div class="card mb-3">
+                <div class="card-header">
+                    <h5>Bestelldetails</h5>
+                </div>
+                <div class="card-body">
+                    <dl class="row">
+                        <dt class="col-sm-3">Besteller:</dt>
+                        <dd class="col-sm-9">{{ order.orderer | username }}</dd>
+                        
+                        <dt class="col-sm-3">Datum:</dt>
+                        <dd class="col-sm-9">{{ order.createdAt | date('d.m.Y H:i:s') }}</dd>
+                        
+                        <dt class="col-sm-3">Status:</dt>
+                        <dd class="col-sm-9">
+                            {% if order.isOpen %}
+                                <span class="badge badge-warning">Offen</span>
+                            {% elseif order.isActive %}
+                                <span class="badge badge-success">Bezahlt</span>
+                            {% elseif order.isCanceled %}
+                                <span class="badge badge-secondary">Storniert</span>
+                            {% elseif order.isRefunded %}
+                                <span class="badge badge-info">Rückerstattet</span>
+                            {% endif %}
+                        </dd>
+                        
+                        <dt class="col-sm-3">Artikel:</dt>
+                        <dd class="col-sm-9">{{ order.totalItems }}</dd>
+                        
+                        <dt class="col-sm-3">Gesamtbetrag:</dt>
+                        <dd class="col-sm-9"><strong>{{ (order.calculateTotal/100) | format_currency('EUR') }}</strong></dd>
+                    </dl>
+                </div>
+            </div>
+            
+            <div class="card">
+                <div class="card-header">
+                    <h5>Bestellpositionen</h5>
+                </div>
+                <div class="card-body">
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>Produkt</th>
+                                <th class="text-center">Menge</th>
+                                <th class="text-right">Einzelpreis</th>
+                                <th class="text-right">Gesamtpreis</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        {% for position in order.cateringOrderPositions %}
+                            <tr>
+                                <td>
+                                    {{ position.productName }}
+                                    {% if position.productCode %}
+                                        <br><small class="text-muted">Code: {{ position.productCode }}</small>
+                                    {% endif %}
+                                </td>
+                                <td class="text-center">{{ position.quantity }}</td>
+                                <td class="text-right">{{ (position.price/100) | format_currency('EUR') }}</td>
+                                <td class="text-right">{{ (position.totalPrice/100) | format_currency('EUR') }}</td>
+                            </tr>
+                        {% endfor %}
+                        </tbody>
+                        <tfoot>
+                            <tr class="font-weight-bold">
+                                <td colspan="3">Gesamt</td>
+                                <td class="text-right">{{ (order.calculateTotal/100) | format_currency('EUR') }}</td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5>Aktionen</h5>
+                </div>
+                <div class="card-body">
+                    {% if order.isOpen %}
+                        <form method="post" action="{{ path('admin_catering_edit', {'id': order.id}) }}">
+                            <input type="hidden" name="_token" value="{{ csrf_token(csrf_token) }}">
+                            <button type="submit" name="action" value="paid" class="btn btn-success btn-block mb-2">
+                                <i class="fas fa-check"></i> Als bezahlt markieren
+                            </button>
+                        </form>
+                        
+                        <form method="post" action="{{ path('admin_catering_edit', {'id': order.id}) }}">
+                            <input type="hidden" name="_token" value="{{ csrf_token(csrf_token) }}">
+                            <button type="submit" name="action" value="cancel" class="btn btn-warning btn-block" onclick="return confirm('Bestellung wirklich stornieren?')">
+                                <i class="fas fa-times"></i> Stornieren
+                            </button>
+                        </form>
+                    {% endif %}
+                    
+                    {% if order.isActive %}
+                        <form method="post" action="{{ path('admin_catering_edit', {'id': order.id}) }}">
+                            <input type="hidden" name="_token" value="{{ csrf_token(csrf_token) }}">
+                            <button type="submit" name="action" value="undo" class="btn btn-warning btn-block mb-2" onclick="return confirm('Bezahlung wirklich rückgängig machen?')">
+                                <i class="fas fa-undo"></i> Bezahlung rückgängig
+                            </button>
+                        </form>
+                        
+                        <form method="post" action="{{ path('admin_catering_edit', {'id': order.id}) }}">
+                            <input type="hidden" name="_token" value="{{ csrf_token(csrf_token) }}">
+                            <button type="submit" name="action" value="refund" class="btn btn-info btn-block" onclick="return confirm('Bestellung wirklich rückerstatten?')">
+                                <i class="fas fa-reply"></i> Rückerstattung
+                            </button>
+                        </form>
+                    {% endif %}
+                    
+                    {% if order.isDead %}
+                        <form method="post" action="{{ path('admin_catering_edit', {'id': order.id}) }}">
+                            <input type="hidden" name="_token" value="{{ csrf_token(csrf_token) }}">
+                            <button type="submit" name="action" value="delete" class="btn btn-danger btn-block" onclick="return confirm('Bestellung wirklich löschen?')">
+                                <i class="fas fa-trash"></i> Löschen
+                            </button>
+                        </form>
+                    {% endif %}
+                </div>
+            </div>
+            
+            {% if order.cateringOrderHistory | length > 0 %}
+            <div class="card mt-3">
+                <div class="card-header">
+                    <h5>Verlauf</h5>
+                </div>
+                <div class="card-body">
+                    {% for history in order.cateringOrderHistory %}
+                        <div class="mb-2">
+                            <small class="text-muted">{{ history.loggedAt | date('d.m.Y H:i:s') }}</small><br>
+                            <strong>{{ history.action.value | replace({'_': ' '}) | title }}</strong>
+                            {% if history.text %}
+                                <br><small>{{ history.text }}</small>
+                            {% endif %}
+                        </div>
+                        {% if not loop.last %}<hr>{% endif %}
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

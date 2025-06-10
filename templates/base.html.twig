@@ -2,9 +2,11 @@
 <html lang="de">
     <head>
         <meta charset="UTF-8">
+        {#
         {% if app.request.server.get('SERVER_NAME') != 'www.kaiserlan.at' %}
         <meta name="robots" content="noindex, nofollow">
         {% endif %}
+        #}
         <meta name="server_name" content="{{ app.request.server.get('SERVER_NAME') }}">
         <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
         <meta http-equiv="cache-control" content="no-cache"/>

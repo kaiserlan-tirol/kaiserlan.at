@@ -6,6 +6,7 @@ enum SettingType: string
 {
     case String = 'string';
     case HTML = 'html';
+    case TEXTAREA = 'textarea';
     case URL = 'url';
     case File = 'file';
     case Bool = 'bool';
