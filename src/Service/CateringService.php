@@ -30,6 +30,7 @@ class CateringService
     private readonly LoggerInterface $logger;
     private readonly IdmRepository $userRepo;
     private readonly EmailService $emailService;
+    private readonly ShopService $shopService;
 
     public function __construct(
         CateringOrderRepository $orderRepository,
@@ -37,6 +38,7 @@ class CateringService
         CateringProductRepository $productRepository,
         IdmManager $idmManager,
         EmailService $emailService,
+        ShopService $shopService,
         EntityManagerInterface $em,
         LoggerInterface $logger
     ) {
@@ -45,6 +47,7 @@ class CateringService
         $this->productRepository = $productRepository;
         $this->userRepo = $idmManager->getRepository(User::class);
         $this->emailService = $emailService;
+        $this->shopService = $shopService;
         $this->em = $em;
         $this->logger = $logger;
     }
@@ -54,14 +57,66 @@ class CateringService
         return !$all ? $this->productRepository->findActive() : $this->productRepository->findAll();
     }
 
-    public function getIncludedInFlatProducts(): array
+    /**
+     * Check if user has purchased and paid for a flatrate addon from the shop
+     */
+    public function userHasFlatrate(User|UuidInterface $user): bool
     {
-        return $this->productRepository->findIncludedInFlat();
+        $uuid = $user instanceof User ? $user->getUuid() : $user;
+        
+        // Get all shop addons that contain "flatrate" in the name (case-insensitive)
+        $allAddons = $this->shopService->getAddons(all: true);
+        $flatrateAddons = array_filter($allAddons, function($addon) {
+            return stripos($addon->getName(), 'flatrate') !== false || 
+                   stripos($addon->getName(), 'flat-rate') !== false ||
+                   stripos($addon->getName(), 'flat rate') !== false;
+        });
+        
+        if (empty($flatrateAddons)) {
+            return false;
+        }
+        
+        // Check if user has any paid flatrate addon
+        $userPaidAddons = $this->shopService->countOrderedAddons($uuid, true); // paid only
+        
+        foreach ($flatrateAddons as $addon) {
+            if (($userPaidAddons[$addon->getId()] ?? 0) > 0) {
+                return true;
+            }
+        }
+        
+        return false;
     }
 
-    public function getPaidProducts(): array
+    /**
+     * Get products that should be free for users with flatrate
+     */
+    public function getFlatrateProducts(User|UuidInterface|null $user = null): array
     {
-        return $this->productRepository->findPaidProducts();
+        $hasFlat = $user ? $this->userHasFlatrate($user) : false;
+        
+        if ($hasFlat) {
+            // If user has flatrate, return products marked as included in flat
+            return $this->productRepository->findIncludedInFlat();
+        }
+        
+        return [];
+    }
+
+    /**
+     * Get products that user needs to pay for
+     */
+    public function getPaidProducts(User|UuidInterface|null $user = null): array
+    {
+        $hasFlat = $user ? $this->userHasFlatrate($user) : false;
+        
+        if ($hasFlat) {
+            // If user has flatrate, return only products NOT included in flat
+            return $this->productRepository->findPaidProducts();
+        } else {
+            // If user has no flatrate, return all active products
+            return $this->productRepository->findActive();
+        }
     }
 
     public function allocOrder(User|UuidInterface $user): CateringOrder

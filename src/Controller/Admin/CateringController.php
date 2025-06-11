@@ -7,6 +7,7 @@ use App\Entity\CateringProduct;
 use App\Entity\User;
 use App\Exception\OrderLifecycleException;
 use App\Form\CateringProductType;
+use App\Form\CateringManualOrderType;
 use App\Repository\CateringOrderRepository;
 use App\Service\CateringService;
 use Sensio\Bundle\FrameworkExtraBundle\Configuration\IsGranted;
@@ -131,7 +132,8 @@ class CateringController extends AbstractController
             
         return $this->render($template, [
             'product' => $product,
-            'form' => $form->createView()
+            'form' => $form->createView(),
+            'csrf_token' => self::CSRF_TOKEN_PAYED
         ]);
     }
 
@@ -221,5 +223,75 @@ class CateringController extends AbstractController
         fclose($output);
 
         return $response;
+    }
+
+    #[Route(path: '/order/create', name: '_order_create', methods: ['GET', 'POST'])]
+    public function createOrder(Request $request): Response
+    {
+        $products = $this->cateringService->getProducts();
+        
+        $form = $this->createForm(\App\Form\CateringManualOrderType::class, null, [
+            'products' => $products,
+        ]);
+
+        $form->handleRequest($request);
+        if ($form->isSubmitted() && $form->isValid()) {
+            $data = $form->getData();
+            $user = $data['user'];
+            
+            if (!$user) {
+                $this->addFlash('error', 'Bitte wählen Sie einen Benutzer aus.');
+                $template = $request->isXmlHttpRequest() 
+                    ? 'admin/catering/create_order.modal.html.twig' 
+                    : 'admin/catering/create_order.html.twig';
+                return $this->render($template, [
+                    'form' => $form->createView(),
+                    'products' => $products
+                ]);
+            }
+
+            $order = $this->cateringService->allocOrder($user);
+            $hasItems = false;
+
+            // Add products to order
+            foreach ($products as $product) {
+                $quantity = $data['product' . $product->getId()] ?? 0;
+                if ($quantity > 0) {
+                    $position = $this->cateringService->allocOrderPosition();
+                    $position->fillWithProduct($product);
+                    $position->setQuantity($quantity);
+                    $order->addCateringOrderPosition($position);
+                    $hasItems = true;
+                }
+            }
+
+            if (!$hasItems) {
+                $this->addFlash('error', 'Bitte wählen Sie mindestens ein Produkt aus.');
+                $template = $request->isXmlHttpRequest() 
+                    ? 'admin/catering/create_order.modal.html.twig' 
+                    : 'admin/catering/create_order.html.twig';
+                return $this->render($template, [
+                    'form' => $form->createView(),
+                    'products' => $products
+                ]);
+            }
+
+            try {
+                $this->cateringService->persistOrder($order);
+                $this->addFlash('success', "Bestellung für {$user->getNickname()} wurde erfolgreich erstellt.");
+                return $this->redirectToRoute('admin_catering');
+            } catch (\Exception $e) {
+                $this->addFlash('error', 'Fehler beim Erstellen der Bestellung: ' . $e->getMessage());
+            }
+        }
+
+        $template = $request->isXmlHttpRequest() 
+            ? 'admin/catering/create_order.modal.html.twig' 
+            : 'admin/catering/create_order.html.twig';
+
+        return $this->render($template, [
+            'form' => $form->createView(),
+            'products' => $products
+        ]);
     }
 }

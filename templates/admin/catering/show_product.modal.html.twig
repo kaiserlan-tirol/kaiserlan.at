@@ -54,26 +54,31 @@
                 {{ form_widget(form.sortIndex, {'attr': {'class': 'form-control'}}) }}
                 {{ form_errors(form.sortIndex) }}
             </div>
+            
+            <div class="d-flex justify-content-between mt-3">
+                {% if product.id and csrf_token is defined %}
+                    {% macro confirm_button(title, href, csrf_token, class="primary", confirm=false) %}
+                        <form method="post" action="{{ href }}" {% if confirm %} data-toggle="confirmModal" data-modal-title="Bestätigen" data-modal-text="Sind Sie sicher?" {% endif %}>
+                            <input type="hidden" name="_token" value="{{ csrf_token(csrf_token) }}">
+                            <button type="submit" class="btn btn-sm btn-{{ class }}">{{ title }}</button>
+                        </form>
+                    {% endmacro %}
+                    {{ _self.confirm_button('Löschen', path('admin_catering_product_delete', { 'id': product.id }), csrf_token, "danger", true) }}
+                {% endif %}
+                
+                <div class="ml-auto">
+                    <button type="button" class="btn btn-sm btn-secondary mr-2" data-dismiss="modal">Abbrechen</button>
+                    <button type="submit" class="btn btn-sm btn-primary">
+                        <i class="fas fa-save"></i> Speichern
+                    </button>
+                </div>
+            </div>
+            
             {{ form_end(form) }}
         </div>
     {% endblock %}
 
     {% block modalFooter %}
-        {% macro confirm_button(title, href, csrf_token, class="primary", confirm=false) %}
-            <form method="post" action="{{ href }}" {% if confirm %} data-toggle="confirmModal" data-modal-title="Bestätigen" data-modal-text="Sind Sie sicher?" {% endif %}>
-                <input type="hidden" name="_token" value="{{ csrf_token(csrf_token) }}">
-                <button type="submit" class="btn btn-sm btn-{{ class }}">{{ title }}</button>
-            </form>
-        {% endmacro %}
-
-        {% if product.id and csrf_token is defined %}
-            {{ _self.confirm_button('Löschen', path('admin_catering_product_delete', { 'id': product.id }), csrf_token, "danger", true) }}
-        {% endif %}
-        
-        <button type="button" class="btn btn-sm btn-secondary" data-dismiss="modal">Abbrechen</button>
-        
-        <button type="submit" form="{{ form.vars.id }}" class="btn btn-sm btn-primary">
-            <i class="fas fa-save"></i> Speichern
-        </button>
+        {# Footer is now empty as buttons are in the form #}
     {% endblock %}
 {% endembed %}

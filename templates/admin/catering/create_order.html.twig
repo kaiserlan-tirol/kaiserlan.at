@@ -1,0 +1,101 @@
+{% extends 'admin/adminBase.html.twig' %}
+
+{% block title %}Bestellung erfassen - KLMS - Admin{% endblock %}
+{% block siteheading %}<i class="fas fa-plus"></i> Bestellung erfassen{% endblock %}
+{% block main %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-8 offset-md-2">
+            <div class="card">
+                <div class="card-header">
+                    <h4 class="card-title mb-0">Neue Bestellung erfassen</h4>
+                </div>
+                
+                {{ form_start(form) }}
+                <div class="card-body">
+                    <div class="form-group">
+                        {{ form_label(form.user) }}
+                        {{ form_widget(form.user, {'attr': {'class': 'form-control'}}) }}
+                        {{ form_errors(form.user) }}
+                        <small class="form-text text-muted">Suchen Sie nach dem Benutzernamen oder der E-Mail-Adresse</small>
+                    </div>
+                    
+                    <hr>
+                    
+                    <h5>Produkte auswählen</h5>
+                    <div class="row">
+                        {% for product in products %}
+                            {% set field = 'product' ~ product.id %}
+                            <div class="col-md-6 mb-3">
+                                <div class="card">
+                                    <div class="card-body">
+                                        <h6 class="card-title">{{ product.name }}</h6>
+                                        {% if product.description %}
+                                            <p class="card-text text-muted small">{{ product.description }}</p>
+                                        {% endif %}
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <span class="price">
+                                                {% if product.isIncludedInFlat %}
+                                                    <span class="badge badge-success">Flat-Rate</span>
+                                                {% else %}
+                                                    <strong>{{ (product.price/100) | format_currency('EUR') }}</strong>
+                                                {% endif %}
+                                            </span>
+                                            <div class="form-group mb-0">
+                                                {{ form_widget(form[field], {'attr': {'class': 'form-control product-quantity', 'style': 'width: 80px;'}}) }}
+                                                {{ form_errors(form[field]) }}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                    
+                    <hr>
+                    
+                    <div class="alert alert-info">
+                        <strong>Gesamtsumme:</strong> <span id="total-price">0,00 €</span>
+                    </div>
+                </div>
+                
+                <div class="card-footer">
+                    {{ form_widget(form.submit, {'attr': {'class': 'btn btn-primary'}}) }}
+                    <a href="{{ path('admin_catering') }}" class="btn btn-secondary">
+                        <i class="fas fa-times"></i> Abbrechen
+                    </a>
+                </div>
+                {{ form_end(form) }}
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const quantityInputs = document.querySelectorAll('.product-quantity');
+    const totalPriceElement = document.getElementById('total-price');
+    
+    function updateTotal() {
+        let total = 0;
+        quantityInputs.forEach(input => {
+            const quantity = parseInt(input.value) || 0;
+            const price = parseInt(input.dataset.price) || 0;
+            total += quantity * price;
+        });
+        
+        totalPriceElement.textContent = (total / 100).toLocaleString('de-DE', {
+            style: 'currency',
+            currency: 'EUR'
+        });
+    }
+    
+    quantityInputs.forEach(input => {
+        input.addEventListener('input', updateTotal);
+    });
+    
+    // Initial calculation
+    updateTotal();
+});
+</script>
+{% endblock %}

@@ -62,6 +62,9 @@
                 <li class="nav-item">
                     <a class="nav-link {% if app.request.get('_route') starts with 'admin_catering_product' %}active{% endif %}" href="{{ path('admin_catering_product') }}"><i class="fas fa-shopping-basket fa-fw"></i> Produkte </a>
                 </li>
+                <li class="nav-item">
+                    <a class="nav-link {% if app.request.get('_route') == 'admin_catering_order_create' %}active{% endif %}" href="{{ path('admin_catering_order_create') }}"><i class="fas fa-plus fa-fw"></i> Bestellung erfassen </a>
+                </li>
             </ul>
         </li>
     {% endif %}

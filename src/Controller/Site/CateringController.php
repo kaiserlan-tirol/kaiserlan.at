@@ -45,7 +45,8 @@ class CateringController extends AbstractController
 
         /** @var User $user */
         $user = $this->getUser()->getUser();
-        $products = $this->cateringService->getProducts();
+        $products = $this->cateringService->getPaidProducts($user);
+        $userHasFlatrate = $this->cateringService->userHasFlatrate($user);
 
         $form = $this->createForm(CateringCheckoutType::class, null, [
             'products' => $products,
@@ -84,6 +85,7 @@ class CateringController extends AbstractController
         return $this->render('site/catering/order.html.twig', [
             'form' => $form->createView(),
             'products' => $products,
+            'userHasFlatrate' => $userHasFlatrate,
         ]);
     }
 
@@ -135,14 +137,18 @@ class CateringController extends AbstractController
     #[Route(path: '/menu', name: '_menu')]
     public function menu(): Response
     {
+        /** @var User $user */
+        $user = $this->getUser()->getUser();
+        
         $products = $this->cateringService->getProducts();
-        $flatProducts = $this->cateringService->getIncludedInFlatProducts();
-        $paidProducts = $this->cateringService->getPaidProducts();
+        $flatProducts = $this->cateringService->getFlatrateProducts($user);
+        $paidProducts = $this->cateringService->getPaidProducts($user);
 
         return $this->render('site/catering/menu.html.twig', [
             'products' => $products,
             'flatProducts' => $flatProducts,
             'paidProducts' => $paidProducts,
+            'userHasFlatrate' => $this->cateringService->userHasFlatrate($user),
         ]);
     }
 }

@@ -22,11 +22,11 @@
                     <div class="row">
                         {% for product in products %}
                             <div class="col-md-6 mb-3">
-                                <div class="card h-100 {% if product.isIncludedInFlat %}border-success{% endif %}">
+                                <div class="card h-100 {% if userHasFlatrate and product.isIncludedInFlat %}border-success{% endif %}">
                                     <div class="card-body">
                                         <h6 class="card-title">
                                             {{ product.name }}
-                                            {% if product.isIncludedInFlat %}
+                                            {% if userHasFlatrate and product.isIncludedInFlat %}
                                                 <span class="badge badge-success">Flat-Rate</span>
                                             {% endif %}
                                         </h6>
@@ -35,7 +35,7 @@
                                         {% endif %}
                                         <div class="d-flex justify-content-between align-items-center">
                                             <div class="price">
-                                                {% if product.isIncludedInFlat %}
+                                                {% if userHasFlatrate and product.isIncludedInFlat %}
                                                     <span class="text-success">Kostenlos</span>
                                                 {% else %}
                                                     <strong>{{ (product.price/100) | format_currency('EUR') }}</strong>

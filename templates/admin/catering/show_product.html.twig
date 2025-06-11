@@ -79,7 +79,7 @@
                     {% if product is defined and product.id %}
                         <div class="float-right">
                             <form method="post" action="{{ path('admin_catering_product_delete', {'id': product.id}) }}" style="display: inline;" onsubmit="return confirm('Wirklich löschen?')">
-                                <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ product.id) }}">
+                                <input type="hidden" name="_token" value="{{ csrf_token(csrf_token) }}">
                                 <button type="submit" class="btn btn-danger">
                                     <i class="fas fa-trash"></i> Löschen
                                 </button>
