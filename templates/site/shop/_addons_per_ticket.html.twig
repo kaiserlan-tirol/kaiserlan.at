@@ -50,8 +50,21 @@
                                                             <strong>{{ (addon.price / 100)|number_format(2, ',', '.') }} €</strong>
                                                         </div>
                                                         <div class="addon-control">
-                                                            {{ form_widget(form[ticket_addon_field][addon_field_name]) }}
-                                                            {{ form_label(form[ticket_addon_field][addon_field_name]) }}
+                                                            {% set field = form[ticket_addon_field][addon_field_name] %}
+                                                            {% if 'integer' in field.vars.block_prefixes %}
+                                                                <div class="number-input-wrapper">
+                                                                    <button type="button" class="btn btn-outline-secondary btn-sm number-decrement" tabindex="-1">
+                                                                        <i class="fas fa-minus"></i>
+                                                                    </button>
+                                                                    {{ form_widget(field, {'attr': {'class': 'form-control number-input', 'readonly': true}}) }}
+                                                                    <button type="button" class="btn btn-outline-secondary btn-sm number-increment" tabindex="-1">
+                                                                        <i class="fas fa-plus"></i>
+                                                                    </button>
+                                                                </div>
+                                                            {% else %}
+                                                                {{ form_widget(field) }}
+                                                                {{ form_label(field) }}
+                                                            {% endif %}
                                                         </div>
                                                         {% if form[ticket_addon_field][addon_field_name].vars.help %}
                                                             <small class="form-text text-muted">{{ form[ticket_addon_field][addon_field_name].vars.help }}</small>

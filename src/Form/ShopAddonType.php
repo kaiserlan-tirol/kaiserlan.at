@@ -22,6 +22,7 @@ class ShopAddonType extends AbstractType
             ->add('price', MoneyType::class, ['label' => 'Preis', 'divisor' => 100])
             ->add('active', CheckboxType::class, ['label' => 'Aktiv', 'required' => false])
             ->add('onlyOnce', CheckboxType::class, ['label' => 'Kann nur einmal pro User gekauft werden.', 'required' => false])
+            ->add('onePerTicket', CheckboxType::class, ['label' => 'Per-Ticket: Als Checkbox (Ein pro Ticket)', 'required' => false, 'help' => 'Wenn aktiviert, wird dieses Add-on im Per-Ticket System als Checkbox angezeigt (max. 1 pro Ticket). Sonst als Anzahl-Eingabefeld.'])
             ->add('maxQuantityGlobal', IntegerType::class, ['label' => 'Maximale Anzahl (global)', 'required' => false, 'attr' => ['min' => 1], 'constraints' => [new Assert\Positive()]])
             ->add('sortIndex', IntegerType::class, ['label' => 'Sortierung', 'required' => false, 'attr' => ['min' => 1], 'constraints' => [new Assert\Positive()]])
             ->add('description', TextAreaType::class, ['label' => 'Beschreibung', 'required' => false])

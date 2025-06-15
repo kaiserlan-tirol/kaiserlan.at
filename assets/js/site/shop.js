@@ -67,6 +67,9 @@ const Shop = function ($root, config) {
     if (this.$buttonsWrapper.length === 0) {
         this.smNext('addon');
     }
+    
+    // Initialize number input controls
+    this._initNumberInputControls();
 }
 
 function storeVisibility(elements) {
@@ -260,6 +263,61 @@ $.extend(Shop.prototype, {
             this.$formRedeemButton.prop('disabled', false);
             this.$formRedeemInput.prop('readonly', false).removeClass('is-invalid').removeClass('is-valid');
         }
+    },
+    
+    // Initialize custom number input controls with +/- buttons
+    _initNumberInputControls() {
+        // Handle increment buttons
+        $(document).on('click', '.number-increment, .number-input-btn.number-increment', (e) => {
+            e.preventDefault();
+            const $button = $(e.currentTarget);
+            const $wrapper = $button.closest('.number-input-wrapper');
+            const $input = $wrapper.find('input[type="number"]');
+            
+            if ($input.length) {
+                const currentVal = parseInt($input.val()) || 0;
+                const max = parseInt($input.attr('max')) || 999;
+                
+                if (currentVal < max) {
+                    $input.val(currentVal + 1).trigger('change');
+                }
+            }
+        });
+
+        // Handle decrement buttons
+        $(document).on('click', '.number-decrement, .number-input-btn.number-decrement', (e) => {
+            e.preventDefault();
+            const $button = $(e.currentTarget);
+            const $wrapper = $button.closest('.number-input-wrapper');
+            const $input = $wrapper.find('input[type="number"]');
+            
+            if ($input.length) {
+                const currentVal = parseInt($input.val()) || 0;
+                const min = parseInt($input.attr('min')) || 0;
+                
+                if (currentVal > min) {
+                    $input.val(currentVal - 1).trigger('change');
+                }
+            }
+        });
+
+        // Allow keyboard input on number fields (remove readonly when focused)
+        $(document).on('focus', '.number-input', (e) => {
+            $(e.currentTarget).removeAttr('readonly');
+        });
+
+        // Add readonly back when focus is lost and validate input
+        $(document).on('blur', '.number-input', (e) => {
+            const $input = $(e.currentTarget);
+            const currentVal = parseInt($input.val()) || 0;
+            const min = parseInt($input.attr('min')) || 0;
+            const max = parseInt($input.attr('max')) || 999;
+            
+            // Clamp value to min/max bounds
+            let clampedVal = Math.max(min, Math.min(max, currentVal));
+            
+            $input.val(clampedVal).attr('readonly', true).trigger('change');
+        });
     },
 });
 

@@ -36,7 +36,8 @@ class TicketAddonSelectionType extends AbstractType
                 }
             }
 
-            if ($addon->getOnlyOnce()) {
+            // Check if this addon should be "one per ticket" (checkbox) or quantity-based (number input)
+            if ($addon->isOnePerTicket()) {
                 $builder->add($name, CheckboxType::class, array_merge($formOpt, [
                     'required' => false,
                     'value' => "1",

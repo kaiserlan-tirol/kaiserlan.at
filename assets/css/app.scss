@@ -51,6 +51,124 @@
             .form-check-input {
                 margin-right: 8px;
             }
+
+            // Custom number input with +/- buttons
+            .number-input-wrapper {
+                display: flex;
+                align-items: center;
+                gap: 0;
+                max-width: 100px;
+                margin-bottom: 10px;
+
+                
+                
+                .number-decrement,
+                .number-increment {
+                    flex: 0 0 auto;
+                    width: 36px;
+                    height: 36px;
+                    padding: 0;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    border-radius: 0;
+                    font-size: 14px;
+                    
+                    &:hover {
+                        background-color: #007bff;
+                        border-color: #007bff;
+                        color: white;
+                    }
+                    
+                    &:active {
+                        transform: scale(0.95);
+                    }
+                    
+                    i {
+                        font-size: 12px;
+                    }
+                }
+                
+                .number-decrement {
+                    border-top-left-radius: 0.25rem;
+                    border-bottom-left-radius: 0.25rem;
+                    border-right: none;
+                }
+                
+                .number-increment {
+                    border-top-right-radius: 0.25rem;
+                    border-bottom-right-radius: 0.25rem;
+                    border-left: none;
+                }
+                
+                .number-input {
+                    flex: 1;
+                    text-align: center;
+                    border-radius: 0;
+                    font-weight: 600;
+                    font-size: 16px;
+                    background-color: #f8f9fa;
+                    cursor: default;
+                    min-width: 60px;
+                    margin-right: 0;
+                    
+                    &:focus {
+                        box-shadow: none;
+                        border-color: #007bff;
+                        background-color: #ffffff;
+                    }
+                    
+                    // Hide the default number spinner arrows
+                    &::-webkit-outer-spin-button,
+                    &::-webkit-inner-spin-button {
+                        -webkit-appearance: none;
+                        margin: 0;
+                    }
+                    
+                    &[type=number] {
+                        -moz-appearance: textfield;
+                    }
+                }
+            }
+            
+            // Style for ticket quantity +/- buttons
+            .number-input-btn {
+                flex: 0 0 auto;
+                width: 100%;
+                height: 36px;
+                padding: 0;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                border-radius: 0;
+                font-size: 14px;
+                
+                &:hover {
+                    background-color: #007bff;
+                    border-color: #007bff;
+                    color: white;
+                }
+                
+                &:active {
+                    transform: scale(0.95);
+                }
+                
+                i {
+                    font-size: 12px;
+                }
+                
+                &.number-decrement {
+                    border-top-left-radius: 0.25rem;
+                    border-bottom-left-radius: 0.25rem;
+                    border-right: none;
+                }
+                
+                &.number-increment {
+                    border-top-right-radius: 0.25rem;
+                    border-bottom-right-radius: 0.25rem;
+                    border-left: none;
+                }
+            }
         }
     }
     
@@ -66,4 +184,12 @@
             }
         }
     }
+}
+
+// set with of number-input-btn to 100% for better alignment
+.number-input-btn {
+    width: 100%;
+}
+input[type="number"] {
+    text-align: right;
 }

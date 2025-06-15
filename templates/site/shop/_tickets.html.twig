@@ -100,7 +100,15 @@
                     <div class="input-group-prepend">
                         <span class="input-group-text">Anzahl der Tickets</span>
                     </div>
-                    {{ form_widget(form.tickets) }}
+                    <div class="number-input-wrapper">
+                        <button type="button" class="number-input-btn number-decrement" tabindex="-1">
+                            <i class="fas fa-minus"></i>
+                        </button>
+                        {{ form_widget(form.tickets) }}
+                        <button type="button" class="number-input-btn number-increment" tabindex="-1">
+                            <i class="fas fa-plus"></i>
+                        </button>
+                    </div>
                 </div>
                 <p class="text-muted">
                     Bei mehreren Tickets wird das erste automatisch für den eigenen Eintritt verwendet und alle
@@ -161,7 +169,15 @@
                         <div class="input-group-prepend">
                             <span class="input-group-text">Anzahl der Tickets</span>
                         </div>
-                        {{ form_widget(form.tickets) }}
+                        <div class="number-input-wrapper">
+                            <button type="button" class="number-input-btn number-decrement" tabindex="-1">
+                                <i class="fas fa-minus"></i>
+                            </button>
+                            {{ form_widget(form.tickets) }}
+                            <button type="button" class="number-input-btn number-increment" tabindex="-1">
+                                <i class="fas fa-plus"></i>
+                            </button>
+                        </div>
                     </div>
                     <p class="text-muted">
                         Du hast bereits ein Ticket. Weitere Tickets werden als Ticket-Codes für deine Freunde versendet.

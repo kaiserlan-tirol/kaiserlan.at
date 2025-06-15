@@ -35,6 +35,9 @@ class ShopAddon
     #[ORM\Column(nullable: true)]
     private ?int $maxQuantityGlobal = null;
 
+    #[ORM\Column]
+    private ?bool $onePerTicket = false;
+
     public function getId(): ?int
     {
         return $this->id;
@@ -120,6 +123,17 @@ class ShopAddon
     public function setMaxQuantityGlobal(?int $maxQuantityGlobal): static
     {
         $this->maxQuantityGlobal = $maxQuantityGlobal;
+        return $this;
+    }
+    
+    public function isOnePerTicket(): ?bool
+    {
+        return $this->onePerTicket;
+    }
+
+    public function setOnePerTicket(bool $onePerTicket): static
+    {
+        $this->onePerTicket = $onePerTicket;
         return $this;
     }
 }
