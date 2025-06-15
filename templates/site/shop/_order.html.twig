@@ -12,15 +12,15 @@
                 {% endif %}
                 {% if p.addons is not empty %}
                     <br>
-                    <small class="ml-2 text-info">
+                    <small class="ml-2">
                         Add-ons: 
                         {% for addon in p.addons %}
-                            {{ addon.text }}{% if not loop.last %}, {% endif %}
+                            {{ addon.text }}{% if addon.price > 0 %} (+{{ (addon.price / 100) | format_currency('EUR') }}){% elseif addon.price < 0 %} ({{ (addon.price / 100) | format_currency('EUR') }}){% endif %}{% if not loop.last %}, {% endif %}
                         {% endfor %}
                     </small>
                 {% endif %}
                 </td>
-                <td class="text-right">{{ (p.price / 100) | format_currency('EUR') }}</td>
+                <td class="text-right">{{ (p.totalPrice / 100) | format_currency('EUR') }}</td>
             </tr>
         {% elseif p is instanceof("\\App\\Entity\\ShopOrderPositionAddon") and p.ticket is empty %}
             {# Only show standalone addons (legacy system) #}

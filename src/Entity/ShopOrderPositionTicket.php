@@ -84,4 +84,32 @@ class ShopOrderPositionTicket extends ShopOrderPosition
             return $baseText;
         }
     }
+
+    /**
+     * Calculate the total price for this ticket including all associated addons
+     */
+    public function getTotalPrice(): int
+    {
+        $total = $this->getPrice() ?? 0;
+
+        foreach ($this->addons as $addon) {
+            $total += $addon->getPrice() ?? 0;
+        }
+
+        return $total;
+    }
+
+    /**
+     * Get the total addon price for this ticket
+     */
+    public function getAddonTotalPrice(): int
+    {
+        $total = 0;
+
+        foreach ($this->addons as $addon) {
+            $total += $addon->getPrice() ?? 0;
+        }
+
+        return $total;
+    }
 }
