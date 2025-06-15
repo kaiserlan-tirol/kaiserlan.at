@@ -1,0 +1,78 @@
+{% if settings.get('shop.per_ticket_addons', false) %}
+    {# New per-ticket addon system #}
+    <div class="row">
+        <div class="col">
+            <h1>Addons kaufen</h1>
+            <div class="mb-3">
+                {% if settings.get('lan.signup.info.addon') is not empty %}
+                    {{ settings.get('lan.signup.info.addon') | raw }}
+                {% else %}
+                    <p>
+                        Wähle für jeden Ticket die gewünschten Add-ons aus. Add-ons werden dem jeweiligen Ticket zugeordnet und können bei der Ticket-Einlösung genutzt werden.
+                    </p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    {# Per-ticket addon selection #}
+    <div id="ticket-addon-list" class="mt-4">
+        <div class="alert alert-info" id="no-tickets-message">
+            <p><strong>Wähle zuerst die Anzahl der Tickets aus</strong></p>
+            <p>Die Add-on Auswahl wird angezeigt, sobald du eine Ticket-Anzahl auswählst.</p>
+        </div>
+        
+        {# Dynamically show/hide ticket addon forms based on ticket selection #}
+        {% for i in 0..19 %} {# Max 20 tickets as per ShopService::MAX_TICKET_COUNT #}
+            {% set ticket_addon_field = 'ticket_addons_' ~ i %}
+            {% if form[ticket_addon_field] is defined %}
+                <div class="ticket-addon-section mb-4" id="ticket-{{ i }}-addons" style="display: none;">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0">
+                                <i class="fas fa-ticket-alt"></i> Ticket {{ i + 1 }} - Add-ons
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            {% if addons is not empty %}
+                                <div class="row">
+                                    {% for addon in addons %}
+                                        {% set addon_field_name = 'addon' ~ addon.id %}
+                                        {% if form[ticket_addon_field][addon_field_name] is defined %}
+                                            <div class="col-md-6 col-lg-4 mb-3">
+                                                <div class="card addon-card">
+                                                    <div class="card-body">
+                                                        <h6 class="card-title">{{ addon.name }}</h6>
+                                                        {% if addon.description %}
+                                                            <p class="card-text text-muted small">{{ addon.description }}</p>
+                                                        {% endif %}
+                                                        <div class="addon-price mb-2">
+                                                            <strong>{{ (addon.price / 100)|number_format(2, ',', '.') }} €</strong>
+                                                        </div>
+                                                        <div class="addon-control">
+                                                            {{ form_widget(form[ticket_addon_field][addon_field_name]) }}
+                                                            {{ form_label(form[ticket_addon_field][addon_field_name]) }}
+                                                        </div>
+                                                        {% if form[ticket_addon_field][addon_field_name].vars.help %}
+                                                            <small class="form-text text-muted">{{ form[ticket_addon_field][addon_field_name].vars.help }}</small>
+                                                        {% endif %}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        {% endif %}
+                                    {% endfor %}
+                                </div>
+                            {% else %}
+                                <p class="text-muted">Keine Add-ons verfügbar.</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
+        {% endfor %}
+    </div>
+
+{% else %}
+    {# Legacy global addon system #}
+    {% include 'site/shop/_addons.html.twig' %}
+{% endif %}

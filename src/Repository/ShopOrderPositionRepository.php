@@ -108,4 +108,90 @@ class ShopOrderPositionRepository extends ServiceEntityRepository
             ->getQuery()
             ->getResult();
     }
+
+    /**
+     * @param ShopOrderPositionTicket $ticket
+     * @param ShopOrderStatus[] $statusFilter
+     * @return ShopOrderPositionAddon[]
+     */
+    public function getAddonsForTicket(ShopOrderPositionTicket $ticket, array $statusFilter = []): array
+    {
+        $qb = $this->createQueryBuilder('op')
+            ->join('op.order', 'o')
+            ->where('op INSTANCE OF '.ShopOrderPositionAddon::class)
+            ->andWhere('op.ticket = :ticket')
+            ->setParameter('ticket', $ticket);
+            
+        if (!empty($statusFilter)) {
+            $qb->andWhere('o.status in (:status)')
+               ->setParameter('status', $statusFilter);
+        }
+        
+        return $qb->getQuery()->getResult();
+    }
+
+    /**
+     * @param UuidInterface|null $uuid
+     * @param ShopOrderStatus[] $statusFilter
+     * @return array [ticket_id => [addon_id => count]]
+     */
+    public function countAddonsPerTicket(?UuidInterface $uuid = null, array $statusFilter = []): array
+    {
+        $qb = $this->getEntityManager()->createQueryBuilder();
+        $q = $qb->select('identity(op.ticket) as ticket_id, identity(op.addon) as addon_id, count(op) as cnt')
+            ->from(ShopOrderPositionAddon::class, 'op')
+            ->join('op.order', 'o')
+            ->where('op.ticket IS NOT NULL')
+            ->groupBy('op.ticket, op.addon');
+            
+        if (!empty($statusFilter)) {
+           $q->andWhere('o.status in (:status)')
+             ->setParameter('status', $statusFilter);
+        }
+        if (!is_null($uuid)) {
+            $q->andWhere('o.orderer = :uuid')
+              ->setParameter('uuid', $uuid);
+        }
+        
+        $results = $q->getQuery()->getArrayResult();
+        $formatted = [];
+        foreach ($results as $result) {
+            $ticketId = $result['ticket_id'];
+            $addonId = $result['addon_id'];
+            $count = $result['cnt'];
+            if (!isset($formatted[$ticketId])) {
+                $formatted[$ticketId] = [];
+            }
+            $formatted[$ticketId][$addonId] = $count;
+        }
+        
+        return $formatted;
+    }
+
+    /**
+     * Get addon counts for tickets that belong to redeemed tickets
+     * @param UuidInterface $userUuid
+     * @param ShopOrderStatus[] $statusFilter
+     * @return array [addon_id => count]
+     */
+    public function countAddonsForRedeemedTickets(UuidInterface $userUuid, array $statusFilter = []): array
+    {
+        $qb = $this->getEntityManager()->createQueryBuilder();
+        $q = $qb->select('identity(op.addon) as addon_id, count(op) as cnt')
+            ->from(ShopOrderPositionAddon::class, 'op')
+            ->join('op.order', 'o')
+            ->join('op.ticket', 'ticket_pos')
+            ->join('ticket_pos.ticket', 't')
+            ->where('op.ticket IS NOT NULL')
+            ->andWhere('t.redeemer = :userUuid')
+            ->groupBy('op.addon')
+            ->setParameter('userUuid', $userUuid);
+            
+        if (!empty($statusFilter)) {
+           $q->andWhere('o.status in (:status)')
+             ->setParameter('status', $statusFilter);
+        }
+        
+        return array_column($q->getQuery()->getArrayResult(), 'cnt', 'addon_id');
+    }
 }

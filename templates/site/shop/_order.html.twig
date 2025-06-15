@@ -1,17 +1,34 @@
 <table class="table table-sm table-borderless">
     <tbody>
     {% for p in order.shopOrderPositions %}
-        <tr>
-            <td><b>{{ p.text }}</b>
-            {% if p is instanceof("\\App\\Entity\\ShopOrderPositionTicket") and p.ticket is not empty %}
-                <br>
-                <span class="ml-2 text-muted">
-                    (<span class="text-monospace">{{ p.ticket.code }}</span>{% if show_ticket_detail | default(true) and p.ticket.isRedeemed %}, verwendet von {{ p.ticket.redeemer | username }}{% endif %})
-                </span>
-            {% endif %}
-            </td>
-            <td class="text-right">{{ (p.price / 100) | format_currency('EUR') }}</td>
-        </tr>
+        {% if p is instanceof("\\App\\Entity\\ShopOrderPositionTicket") %}
+            <tr>
+                <td><b>{{ p.text }}</b>
+                {% if p.ticket is not empty %}
+                    <br>
+                    <span class="ml-2 text-muted">
+                        (<span class="text-monospace">{{ p.ticket.code }}</span>{% if show_ticket_detail | default(true) and p.ticket.isRedeemed %}, verwendet von {{ p.ticket.redeemer | username }}{% endif %})
+                    </span>
+                {% endif %}
+                {% if p.addons is not empty %}
+                    <br>
+                    <small class="ml-2 text-info">
+                        Add-ons: 
+                        {% for addon in p.addons %}
+                            {{ addon.text }}{% if not loop.last %}, {% endif %}
+                        {% endfor %}
+                    </small>
+                {% endif %}
+                </td>
+                <td class="text-right">{{ (p.price / 100) | format_currency('EUR') }}</td>
+            </tr>
+        {% elseif p is instanceof("\\App\\Entity\\ShopOrderPositionAddon") and p.ticket is empty %}
+            {# Only show standalone addons (legacy system) #}
+            <tr>
+                <td><b>{{ p.text }}</b></td>
+                <td class="text-right">{{ (p.price / 100) | format_currency('EUR') }}</td>
+            </tr>
+        {% endif %}
     {% endfor %}
         <tr class="font-weight-bold border-top border-dark">
             <td>Gesamt</td>

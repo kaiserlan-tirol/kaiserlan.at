@@ -52,6 +52,8 @@ class SettingService
         'lan.signup.discount.limit' => [self::TB_DESCRIPTION => 'Gruppenermäßigung ab x Eintritte.', self::TB_TYPE => SettingType::Integer],
         'lan.signup.payment_details' => [self::TB_DESCRIPTION => 'Bankdaten für die Zahlung von Bestellungen', self::TB_TYPE => SettingType::HTML],
 
+        'shop.per_ticket_addons' => [self::TB_DESCRIPTION => 'Add-ons pro Ticket zuordnen (neues System)', self::TB_TYPE => SettingType::Bool],
+
         'lan.seatmap.enabled' => [self::TB_DESCRIPTION => 'Sitzplanbuchungen einschalten', self::TB_TYPE => SettingType::Bool],
         'lan.seatmap.text_above' => [self::TB_DESCRIPTION => 'Text unter der Überschrift', self::TB_TYPE => SettingType::HTML],
         'lan.seatmap.allow_booking_for_non_paid' => [self::TB_DESCRIPTION => 'Sitzplanbuchungen für nicht bezahlte Gamer erlauben', self::TB_TYPE => SettingType::Bool],

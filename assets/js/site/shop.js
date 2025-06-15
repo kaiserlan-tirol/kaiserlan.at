@@ -30,6 +30,11 @@ const Shop = function ($root, config) {
     this.$buttonReset = this.$root.find('button[type="reset"]');
     this.$buttonReset.on('click', (e) => { e.preventDefault(); this.smClear() });
 
+    // Per-ticket addon system elements
+    this.$ticketAddonList = this.$root.find('#ticket-addon-list');
+    this.$noTicketsMessage = this.$ticketAddonList.find('#no-tickets-message');
+    this.$ticketAddonSections = this.$ticketAddonList.find('.ticket-addon-section');
+
     this.$submit = this.$root.find('#submitWrapper');
 
     this.visibilityStates = storeVisibility([
@@ -51,6 +56,12 @@ const Shop = function ($root, config) {
 
     this.path = config['path'];
     this.smClear();
+
+    // Set up ticket count change listener for per-ticket addons
+    this.$formTicketCount.on('input change', () => this._updateTicketAddonVisibility());
+    
+    // Also listen for additional tickets
+    this.$formTicketAdditional.on('input change', () => this._updateTicketAddonVisibility());
 
     // go straight to add-on in case ticket is not rendered
     if (this.$buttonsWrapper.length === 0) {
@@ -149,12 +160,16 @@ $.extend(Shop.prototype, {
         this.$formTicketCount.val(1);
         this.$buttonsWrapper.addClass('d-none');
         this.$paneOne.removeClass('d-none');
+        // Trigger addon visibility update for per-ticket system
+        this._updateTicketAddonVisibility();
     },
     _showMany() {
         this.$formTicketCount.val(1);
         //this.$formTicketCount.min(1);
         this.$buttonsWrapper.addClass('d-none');
         this.$paneMore.removeClass('d-none');
+        // Trigger addon visibility update for per-ticket system
+        this._updateTicketAddonVisibility();
     },
     _showRedeem() {
         this.$formTicketCount.val(0);
@@ -168,6 +183,38 @@ $.extend(Shop.prototype, {
         this.$backButton.addClass('d-none');
         this.$addons.removeClass('d-none');
         this.$submit.removeClass('d-none');
+        
+        // Update per-ticket addon visibility
+        this._updateTicketAddonVisibility();
+    },
+    _updateTicketAddonVisibility() {
+        const ticketCount = parseInt(this.$formTicketCount.val() || 0);
+        const additionalTickets = parseInt(this.$formTicketAdditional.val() || 0);
+        const totalTickets = ticketCount + additionalTickets;
+        
+        if (this.$ticketAddonSections.length > 0) {
+            // Per-ticket addon system is active
+            if (totalTickets > 0) {
+                this.$noTicketsMessage.hide();
+                
+                // Show addon sections for the selected number of tickets
+                this.$ticketAddonSections.each((index, element) => {
+                    const $section = $(element);
+                    if (index < totalTickets) {
+                        $section.show();
+                    } else {
+                        $section.hide();
+                        // Reset form values for hidden sections
+                        $section.find('input').val(0).prop('checked', false);
+                    }
+                });
+            } else {
+                this.$noTicketsMessage.show();
+                this.$ticketAddonSections.hide();
+                // Reset all addon form values
+                this.$ticketAddonSections.find('input').val(0).prop('checked', false);
+            }
+        }
     },
     _showAdditional() {
         this.$formTicketAdditional.val(0);

@@ -17,6 +17,11 @@ class ShopOrderPositionAddon extends ShopOrderPosition
     #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
     private ?ShopAddon $addon = null;
 
+    /** @var ShopOrderPositionTicket|null The ticket this addon is attached to */
+    #[ORM\ManyToOne(targetEntity: ShopOrderPositionTicket::class)]
+    #[ORM\JoinColumn(nullable: true, onDelete: 'CASCADE')]
+    private ?ShopOrderPositionTicket $ticket = null;
+
     public function getText(): ?string
     {
         return $this->text;
@@ -29,15 +34,6 @@ class ShopOrderPositionAddon extends ShopOrderPosition
         return $this;
     }
 
-    public function fillWithAddon(ShopAddon $addon): self
-    {
-        $this->setText($addon->getName());
-        $this->setPrice($addon->getPrice());
-        $this->setAddon($addon);
-
-        return $this;
-    }
-
     public function getAddon(): ?ShopAddon
     {
         return $this->addon;
@@ -46,6 +42,30 @@ class ShopOrderPositionAddon extends ShopOrderPosition
     public function setAddon(ShopAddon $addon): self
     {
         $this->addon = $addon;
+
+        return $this;
+    }
+
+    public function getTicket(): ?ShopOrderPositionTicket
+    {
+        return $this->ticket;
+    }
+
+    public function setTicket(?ShopOrderPositionTicket $ticket): self
+    {
+        $this->ticket = $ticket;
+
+        return $this;
+    }
+
+    public function fillWithAddon(ShopAddon $addon, ?ShopOrderPositionTicket $ticket = null): self
+    {
+        $this->setText($addon->getName());
+        $this->setPrice($addon->getPrice());
+        $this->setAddon($addon);
+        if ($ticket) {
+            $this->setTicket($ticket);
+        }
 
         return $this;
     }

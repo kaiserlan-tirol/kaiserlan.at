@@ -3,10 +3,12 @@
 namespace App\Form;
 
 use App\Entity\ShopAddon;
+use App\Form\TicketAddonSelectionType;
 use App\Service\ShopService;
 use App\Service\TicketService;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\CheckboxType;
+use Symfony\Component\Form\Extension\Core\Type\CollectionType;
 use Symfony\Component\Form\Extension\Core\Type\IntegerType;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\FormBuilderInterface;
@@ -45,45 +47,60 @@ class CheckoutType extends AbstractType
                     ]
                 ]);
         }
-        foreach ($options['addons'] as $addon) {
-            $name = "addon{$addon->getId()}";
-            $max = $options['max_addon_count_callback'] ? $options['max_addon_count_callback']($addon) : null;
-            $form_opt = [];
-
-            if (!is_null($max)) {
-                if ($max < 0) {
-                    $form_opt['help'] = "Du kannst dieses Add-On nicht (noch einmal) bestellen.";
-                    $form_opt['disabled'] = true;
-                } else if($max == 0) {
-                    $form_opt['help'] = "Dieses Addon ist nicht mehr verfügbar.";
-                    $form_opt['disabled'] = true;
-                } else {
-                    $form_opt['help'] = "Es sind nur noch {$max} Stück verfügbar.";
-                    $form_opt['disabled'] = false;
-                }
+        
+        // Support both old addon selection and new per-ticket addon selection
+        if ($options['per_ticket_addons']) {
+            // New system: addons per ticket - create forms for max possible tickets
+            $maxTickets = $options['max_ticket_count'] ?? ShopService::MAX_TICKET_COUNT;
+            for ($i = 0; $i < $maxTickets; $i++) {
+                $builder->add("ticket_addons_$i", TicketAddonSelectionType::class, [
+                    'addons' => $options['addons'],
+                    'max_addon_count_callback' => $options['max_addon_count_callback'],
+                    'required' => false,
+                ]);
             }
+        } else {
+            // Legacy system: global addon selection
+            foreach ($options['addons'] as $addon) {
+                $name = "addon{$addon->getId()}";
+                $max = $options['max_addon_count_callback'] ? $options['max_addon_count_callback']($addon) : null;
+                $form_opt = [];
 
-            /** @var ShopAddon $addon */
-            if ($addon->getOnlyOnce()) {
-                $builder->add($name, CheckboxType::class, array_merge($form_opt, [
-                    'required' => false,
-                    'value' => "1",
-                    'label' => "Hinzufügen",
-                ]));
-            } else {
-                $max = max(0, $max ?? ShopService::MAX_TICKET_COUNT);
-                $builder->add($name, IntegerType::class, array_merge($form_opt, [
-                    'required' => false,
-                    'empty_data' => "0",
-                    'attr' => [
-                        'min' => 0,
-                        'max' => $max,
-                    ],
-                    'constraints' => [
-                        new Assert\GreaterThanOrEqual(0),
-                        new Assert\LessThanOrEqual($max)
-                    ],
-                ]));
+                if (!is_null($max)) {
+                    if ($max < 0) {
+                        $form_opt['help'] = "Du kannst dieses Add-On nicht (noch einmal) bestellen.";
+                        $form_opt['disabled'] = true;
+                    } else if($max == 0) {
+                        $form_opt['help'] = "Dieses Addon ist nicht mehr verfügbar.";
+                        $form_opt['disabled'] = true;
+                    } else {
+                        $form_opt['help'] = "Es sind nur noch {$max} Stück verfügbar.";
+                        $form_opt['disabled'] = false;
+                    }
+                }
+
+                /** @var ShopAddon $addon */
+                if ($addon->getOnlyOnce()) {
+                    $builder->add($name, CheckboxType::class, array_merge($form_opt, [
+                        'required' => false,
+                        'value' => "1",
+                        'label' => "Hinzufügen",
+                    ]));
+                } else {
+                    $max = max(0, $max ?? ShopService::MAX_TICKET_COUNT);
+                    $builder->add($name, IntegerType::class, array_merge($form_opt, [
+                        'required' => false,
+                        'empty_data' => "0",
+                        'attr' => [
+                            'min' => 0,
+                            'max' => $max,
+                        ],
+                        'constraints' => [
+                            new Assert\GreaterThanOrEqual(0),
+                            new Assert\LessThanOrEqual($max)
+                        ],
+                    ]));
+                }
             }
         }
     }
@@ -98,6 +115,8 @@ class CheckoutType extends AbstractType
             'tickets' => true,
             'code' => true,
             'addons' => [],
+            'per_ticket_addons' => false,
+            'max_ticket_count' => ShopService::MAX_TICKET_COUNT,
             'max_ticket_count_callback' => null,
             'max_addon_count_callback' => null,
         ]);
@@ -106,6 +125,8 @@ class CheckoutType extends AbstractType
             ->setAllowedTypes('tickets', 'bool')
             ->setAllowedTypes('code', 'bool')
             ->setAllowedTypes('addons', ShopAddon::class.'[]')
+            ->setAllowedTypes('per_ticket_addons', 'bool')
+            ->setAllowedTypes('max_ticket_count', 'int')
             ->setAllowedTypes('max_ticket_count_callback', ['null', 'callable'])
             ->setAllowedTypes('max_addon_count_callback', ['null', 'callable']);
     }

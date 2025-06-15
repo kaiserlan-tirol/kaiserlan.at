@@ -78,9 +78,16 @@ class ShopController extends AbstractController
             return null;
         };
 
+        // Determine if we should use per-ticket addon selection
+        $perTicketAddons = (bool) $this->settingService->get('shop.per_ticket_addons', false);
+        $maxTickets = ShopService::MAX_TICKET_COUNT;
+
         $form = $this->createForm(CheckoutType::class, options: [
+            'tickets' => true, // Enable ticket purchasing
             'code' => !$userRegistered,
             'addons' => $addons,
+            'per_ticket_addons' => $perTicketAddons,
+            'max_ticket_count' => $maxTickets,
             'max_addon_count_callback' => $count_cb,
         ]);
 
@@ -93,10 +100,23 @@ class ShopController extends AbstractController
             $order = $this->shopService->allocOrder($user);
             $this->shopService->orderAddTickets($order, $noTickets);
 
-            // add addons to order
-            foreach ($addons as $addon) {
-                $cnt = $data['addon'.$addon->getId()] ?? 0;
-                $this->shopService->orderAddAddon($order, $addon, $cnt);
+            // Handle addons based on system mode
+            if ($perTicketAddons) {
+                // New system: process per-ticket addons
+                $ticketAddonsData = [];
+                for ($i = 0; $i < $noTickets; $i++) {
+                    $ticketFormKey = "ticket_addons_$i";
+                    if (isset($data[$ticketFormKey])) {
+                        $ticketAddonsData[$i] = $data[$ticketFormKey];
+                    }
+                }
+                $this->shopService->processTicketAddons($order, $ticketAddonsData);
+            } else {
+                // Legacy system: global addon selection
+                foreach ($addons as $addon) {
+                    $cnt = $data['addon'.$addon->getId()] ?? 0;
+                    $this->shopService->orderAddAddon($order, $addon, $cnt);
+                }
             }
 
             // handle code

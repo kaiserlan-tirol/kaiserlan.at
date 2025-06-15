@@ -19,7 +19,7 @@
         {% if showAddonSale %}
             <div id="addonWrapper" class="{% if twoSteps %}d-none{% endif %}">
                 {% if showTicketSale %}<hr />{% endif %}
-                {% include 'site/shop/_addons.html.twig' %}
+                {% include 'site/shop/_addons_per_ticket.html.twig' %}
             </div>
         {% endif %}
         {% if showAny %}

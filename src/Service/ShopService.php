@@ -280,6 +280,49 @@ class ShopService
     }
 
     /**
+     * Add an addon to a specific ticket
+     */
+    public function orderAddAddonToTicket(ShopOrderPositionTicket $ticket, ShopAddon $addon, int $cnt = 1): void
+    {
+        for ($i = 0; $i < $cnt; $i++) {
+            $addonPosition = (new ShopOrderPositionAddon())->fillWithAddon($addon, $ticket);
+            $ticket->getOrder()->addShopOrderPosition($addonPosition);
+            $ticket->addAddon($addonPosition);
+        }
+    }
+
+    /**
+     * Process ticket-specific addon data from the form
+     */
+    public function processTicketAddons(ShopOrder $order, array $ticketAddonsData): void
+    {
+        // Get all ticket positions from the order
+        $ticketPositions = array_filter(
+            $order->getShopOrderPositions()->toArray(),
+            fn($pos) => $pos instanceof ShopOrderPositionTicket
+        );
+
+        foreach ($ticketAddonsData as $ticketIndex => $addonData) {
+            if (!isset($ticketPositions[$ticketIndex])) {
+                continue; // Skip if ticket doesn't exist
+            }
+
+            $ticket = $ticketPositions[$ticketIndex];
+            $addons = $this->getAddons();
+
+            foreach ($addons as $addon) {
+                $addonFieldName = "addon{$addon->getId()}";
+                if (isset($addonData[$addonFieldName])) {
+                    $quantity = (int) $addonData[$addonFieldName];
+                    if ($quantity > 0) {
+                        $this->orderAddAddonToTicket($ticket, $addon, $quantity);
+                    }
+                }
+            }
+        }
+    }
+
+    /**
      * @param User|UuidInterface $user
      * @param ShopOrderStatus|null $status
      * @return ShopOrder[]
@@ -384,5 +427,66 @@ class ShopService
     {
         $filter = $paidOnly ? ShopOrderStatus::STATUS_ACTIVE : ShopOrderStatus::STATUS_NOT_DEAD;
         return $this->shopOrderPositionRepository->countOrderedAddons($addon, null, $filter);
+    }
+
+    /**
+     * Get addons attached to a specific ticket
+     * @return ShopOrderPositionAddon[]
+     */
+    public function getTicketAddons(Ticket $ticket): array
+    {
+        $ticketPosition = $ticket->getShopOrderPosition();
+        if (!$ticketPosition) {
+            return [];
+        }
+        
+        return $ticketPosition->getAddons()->toArray();
+    }
+
+    /**
+     * Check if a user has a specific addon through any of their redeemed tickets
+     */
+    public function userHasAddon(User|UuidInterface $user, ShopAddon $addon): bool
+    {
+        $uuid = $user instanceof User ? $user->getUuid() : $user;
+        $ticket = $this->ticketService->getTicketUser($uuid);
+        
+        if (!$ticket) {
+            return false;
+        }
+        
+        $ticketAddons = $this->getTicketAddons($ticket);
+        foreach ($ticketAddons as $addonPosition) {
+            if ($addonPosition->getAddon() && $addonPosition->getAddon()->getId() === $addon->getId()) {
+                return true;
+            }
+        }
+        
+        return false;
+    }
+
+    /**
+     * Get all addons for a specific user based on their redeemed ticket
+     * @return ShopAddon[]
+     */
+    public function getUserAddons(User|UuidInterface $user): array
+    {
+        $uuid = $user instanceof User ? $user->getUuid() : $user;
+        $ticket = $this->ticketService->getTicketUser($uuid);
+        
+        if (!$ticket) {
+            return [];
+        }
+        
+        $ticketAddons = $this->getTicketAddons($ticket);
+        $addons = [];
+        
+        foreach ($ticketAddons as $addonPosition) {
+            if ($addonPosition->getAddon()) {
+                $addons[] = $addonPosition->getAddon();
+            }
+        }
+        
+        return $addons;
     }
 }
