@@ -264,11 +264,12 @@ class TicketService
 
     /**
      * @param TicketState $state
+     * @param int|null $addonFilter Filter by addon ID
      * @return Ticket[]
      */
-    public function queryTickets(TicketState $state = TicketState::NEW): array
+    public function queryTickets(TicketState $state = TicketState::NEW, ?int $addonFilter = null): array
     {
-        return $this->ticketRepository->findByState($state);
+        return $this->ticketRepository->findByState($state, $addonFilter);
     }
 
     /**

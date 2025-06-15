@@ -16,14 +16,25 @@
             <button class="btn btn-sm btn-success" data-toggle="modal" data-target="#newModal" id="new">
                 <i class="fas fa-plus"></i> Gamer anmelden
             </button>
-{#            <button class="btn btn-success" data-toggle="modal" data-target="#newModal" id="new">#}
-{#                <i class="fas fa-plus"></i> Ticket anlegen#}
-{#            </button>#}
 
             <a class="btn btn-success" href="?dogtags=1&unpaid=1">
                 <i class="fas fa-table"></i> DogTags
             </a>
-
+        </div>
+        <div class="col-auto ml-auto">
+            <div class="input-group">
+                <div class="input-group-prepend">
+                    <span class="input-group-text"><i class="fas fa-filter"></i></span>
+                </div>
+                <select class="form-control" id="addon-filter" onchange="filterByAddon()">
+                    <option value="">Alle Tickets</option>
+                    {% for addon in addons %}
+                        <option value="{{ addon.id }}" {% if selectedAddon == addon.id %}selected{% endif %}>
+                            Tickets mit: {{ addon.name }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
         </div>
     </div>
     <div class="row">
@@ -117,4 +128,20 @@
     </div>
 
     {% include 'admin/payment/modal.add.html.twig' %}
+    
+    <script>
+        function filterByAddon() {
+            const select = document.getElementById('addon-filter');
+            const addonId = select.value;
+            const url = new URL(window.location);
+            
+            if (addonId) {
+                url.searchParams.set('addon', addonId);
+            } else {
+                url.searchParams.delete('addon');
+            }
+            
+            window.location.href = url.toString();
+        }
+    </script>
 {% endblock %}

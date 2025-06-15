@@ -3,6 +3,7 @@
 namespace App\Repository;
 
 use App\Entity\Ticket;
+use App\Entity\ShopOrderPositionAddon;
 use App\Service\TicketState;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
@@ -67,11 +68,15 @@ class TicketRepository extends ServiceEntityRepository
 
     /**
      * Get all Ticket which are in the state or in a later state
+     * @param TicketState $state
+     * @param int|null $addonFilter Filter by addon ID
      * @return Ticket[]
      */
-    public function findByState(TicketState $state): array
+    public function findByState(TicketState $state, ?int $addonFilter = null): array
     {
         $qb = $this->createQueryBuilder('t');
+        
+        // Apply state filter
         switch ($state) {
             case TicketState::PUNCHED:
                 $qb->andWhere('t.punchedAt IS NOT NULL');
@@ -82,6 +87,15 @@ class TicketRepository extends ServiceEntityRepository
             case TicketState::NEW:
                 break;
         }
+        
+        // Apply addon filter if specified
+        if ($addonFilter !== null) {
+            $qb->join('t.shopOrderPosition', 'sop')
+               ->join('sop.addons', 'addon')
+               ->andWhere('addon.addon = :addonId')
+               ->setParameter('addonId', $addonFilter);
+        }
+        
         return $qb->getQuery()
             ->getResult();
     }

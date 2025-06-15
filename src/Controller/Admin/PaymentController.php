@@ -2,9 +2,11 @@
 
 namespace App\Controller\Admin;
 
+use App\Entity\ShopAddon;
 use App\Entity\Ticket;
 use App\Exception\TicketLivecycleException;
 use App\Form\UserSelectType;
+use App\Service\ShopService;
 use App\Service\TicketService;
 use App\Service\TicketState;
 use App\Service\UserService;
@@ -25,12 +27,15 @@ class PaymentController extends AbstractController
 {
     private readonly TicketService $ticketService;
     private readonly UserService $userService;
+    private readonly ShopService $shopService;
 
     public function __construct(TicketService $ticketService,
-                                UserService   $userService)
+                                UserService   $userService,
+                                ShopService   $shopService)
     {
         $this->ticketService = $ticketService;
         $this->userService = $userService;
+        $this->shopService = $shopService;
         // $this->userRepo = $manager->getRepository(User::class);
     }
 
@@ -70,11 +75,17 @@ class PaymentController extends AbstractController
     #[Route(path: '', name: '', methods: ['GET'])]
     public function index(Request $request): Response
     {
-
-        $tickets = $this->ticketService->queryTickets();
+        $addonFilter = $request->query->get('addon');
+        $addonFilterId = $addonFilter ? (int)$addonFilter : null;
+        
+        $tickets = $this->ticketService->queryTickets(addonFilter: $addonFilterId);
+        
         $uuids = array_map(fn (Ticket $t) => $t->getRedeemer(), $tickets);
         $uuids = array_filter($uuids, fn (?UuidInterface $uuid) => !empty($uuid));
         $users = $this->userService->getUsers($uuids, assoc: true);
+        
+        // Get all available addons for the filter dropdown
+        $addons = $this->shopService->getAddons(all: true);
 /*
         $gamers = $this->gamerService->getGamers();
         $printDogTags = intval($request->query->get('dogtags')) === 1;
@@ -103,6 +114,8 @@ class PaymentController extends AbstractController
         return $this->render('admin/payment/index.html.twig', [
             'tickets' => $tickets,
             'users' => $users,
+            'addons' => $addons,
+            'selectedAddon' => $addonFilterId,
             'form_add' => $this->createTicketCreateForm("add", true)->createView(),
             'form_new' => $this->createTicketCreateForm("new", false)->createView(),
         ]);
