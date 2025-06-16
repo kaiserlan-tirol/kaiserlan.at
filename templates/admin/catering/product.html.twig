@@ -21,7 +21,7 @@
                             <th>Verkäufe</th>
                             <th>Sortierung</th>
                             <th>Name</th>
-                            <th>Flat-Rate</th>
+                            <th>Addons</th>
                             <th>Preis</th>
                             <th>Produktcode</th>
                             <th>Aktionen</th>
@@ -45,9 +45,13 @@
                             </td>
                             <td class="text-center">{{ product.sortIndex }}</td>
                             <td>{{ product.name }}</td>
-                            <td class="text-center" data-order="{{ product.isIncludedInFlat }}">
-                                {% if product.isIncludedInFlat %}
-                                    <i title="In der Flatrate enthalten" class="fa-solid fa-check text-success"></i>
+                            <td class="text-center" data-order="{{ product.includedInAddons|length }}">
+                                {% if product.includedInAddons|length > 0 %}
+                                    {% for addon in product.includedInAddons %}
+                                        <span class="badge badge-success me-1" title="Enthalten in {{ addon.name }}">{{ addon.name }}</span>
+                                    {% endfor %}
+                                {% else %}
+                                    <span class="text-muted">-</span>
                                 {% endif %}
                             </td>
                             <td class="text-right" data-order="{{ product.price }}">{{ (product.price/100) | format_currency('EUR') }}</td>

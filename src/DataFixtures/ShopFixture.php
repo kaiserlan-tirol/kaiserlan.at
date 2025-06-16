@@ -53,6 +53,12 @@ class ShopFixture extends Fixture implements DependentFixtureInterface
         $manager->persist($addon3);
         $manager->persist($addon4);
 
+        // Set references for other fixtures
+        $this->setReference('addon-0', $addon1);
+        $this->setReference('addon-1', $addon2);
+        $this->setReference('addon-2', $addon3);
+        $this->setReference('addon-3', $addon4);
+
         $user13 = Uuid::fromInteger(strval(13));
         $user14 = Uuid::fromInteger(strval(14));
         $user18 = Uuid::fromInteger(strval(18));

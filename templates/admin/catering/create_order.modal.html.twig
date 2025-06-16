@@ -29,8 +29,10 @@
                                 {% endif %}
                                 <div class="d-flex justify-content-between align-items-center">
                                     <span class="price">
-                                        {% if product.isIncludedInFlat %}
-                                            <span class="badge badge-success">Flat-Rate</span>
+                                        {% if product.includedInAddons|length > 0 %}
+                                            {% for addon in product.includedInAddons %}
+                                                <span class="badge badge-success me-1">{{ addon.name }}</span>
+                                            {% endfor %}
                                         {% else %}
                                             <strong>{{ (product.price/100) | format_currency('EUR') }}</strong>
                                         {% endif %}

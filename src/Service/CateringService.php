@@ -58,30 +58,26 @@ class CateringService
     }
 
     /**
-     * Check if user has purchased and paid for a flatrate addon from the shop
+     * Check if user has purchased and paid for addons that include catering products
      */
     public function userHasFlatrate(User|UuidInterface $user): bool
     {
         $uuid = $user instanceof User ? $user->getUuid() : $user;
         
-        // Get all shop addons that contain "flatrate" in the name (case-insensitive)
-        $allAddons = $this->shopService->getAddons(all: true);
-        $flatrateAddons = array_filter($allAddons, function($addon) {
-            return stripos($addon->getName(), 'flatrate') !== false || 
-                   stripos($addon->getName(), 'flat-rate') !== false ||
-                   stripos($addon->getName(), 'flat rate') !== false;
-        });
+        // Get all addons the user has purchased and paid for
+        $userPaidAddons = $this->shopService->countOrderedAddons($uuid, true); // paid only
         
-        if (empty($flatrateAddons)) {
+        if (empty($userPaidAddons)) {
             return false;
         }
         
-        // Check if user has any paid flatrate addon
-        $userPaidAddons = $this->shopService->countOrderedAddons($uuid, true); // paid only
-        
-        foreach ($flatrateAddons as $addon) {
-            if (($userPaidAddons[$addon->getId()] ?? 0) > 0) {
-                return true;
+        // Check if any of the user's addons include catering products
+        $allProducts = $this->productRepository->findActive();
+        foreach ($allProducts as $product) {
+            foreach ($product->getIncludedInAddons() as $addon) {
+                if (($userPaidAddons[$addon->getId()] ?? 0) > 0) {
+                    return true; // User has at least one addon that includes catering products
+                }
             }
         }
         
@@ -89,18 +85,49 @@ class CateringService
     }
 
     /**
-     * Get products that should be free for users with flatrate
+     * Get addons that the user has purchased and paid for
+     */
+    public function getUserAddons(User|UuidInterface $user): array
+    {
+        $uuid = $user instanceof User ? $user->getUuid() : $user;
+        $userPaidAddons = $this->shopService->countOrderedAddons($uuid, true); // paid only
+        
+        $addons = [];
+        $allAddons = $this->shopService->getAddons(all: true);
+        
+        foreach ($allAddons as $addon) {
+            if (($userPaidAddons[$addon->getId()] ?? 0) > 0) {
+                $addons[] = $addon;
+            }
+        }
+        
+        return $addons;
+    }
+
+    /**
+     * Get products that should be free for users with specific addons
      */
     public function getFlatrateProducts(User|UuidInterface|null $user = null): array
     {
-        $hasFlat = $user ? $this->userHasFlatrate($user) : false;
-        
-        if ($hasFlat) {
-            // If user has flatrate, return products marked as included in flat
-            return $this->productRepository->findIncludedInFlat();
+        if (!$user) {
+            return [];
         }
         
-        return [];
+        $userAddons = $this->getUserAddons($user);
+        if (empty($userAddons)) {
+            return [];
+        }
+        
+        $products = $this->productRepository->findActive();
+        $freeProducts = [];
+        
+        foreach ($products as $product) {
+            if ($product->isIncludedInAnyAddon($userAddons)) {
+                $freeProducts[] = $product;
+            }
+        }
+        
+        return $freeProducts;
     }
 
     /**
@@ -108,15 +135,21 @@ class CateringService
      */
     public function getPaidProducts(User|UuidInterface|null $user = null): array
     {
-        $hasFlat = $user ? $this->userHasFlatrate($user) : false;
-        
-        if ($hasFlat) {
-            // If user has flatrate, return only products NOT included in flat
-            return $this->productRepository->findPaidProducts();
-        } else {
-            // If user has no flatrate, return all active products
+        if (!$user) {
             return $this->productRepository->findActive();
         }
+        
+        $userAddons = $this->getUserAddons($user);
+        $products = $this->productRepository->findActive();
+        $paidProducts = [];
+        
+        foreach ($products as $product) {
+            if (!$product->isIncludedInAnyAddon($userAddons)) {
+                $paidProducts[] = $product;
+            }
+        }
+        
+        return $paidProducts;
     }
 
     public function allocOrder(User|UuidInterface $user): CateringOrder
@@ -141,10 +174,19 @@ class CateringService
             }
         }
 
-        // Add new position
+        // Get user to check for addon-based pricing
+        $user = $this->userRepo->findOneById($order->getOrderer());
+        $userAddons = $user ? $this->getUserAddons($user) : [];
+        
+        // Create new position
         $position = (new CateringOrderPosition())
             ->fillWithProduct($product)
             ->setQuantity($quantity);
+        
+        // Override price to 0 if product is included in user's addons
+        if ($product->isIncludedInAnyAddon($userAddons)) {
+            $position->setPrice(0);
+        }
         
         $order->addCateringOrderPosition($position);
     }
@@ -305,14 +347,67 @@ class CateringService
             ->setActive(false)
             ->setPrice(100)
             ->setName('Neues Produkt')
-            ->setDescription('')
-            ->setIncludedInFlat(false);
+            ->setDescription('');
     }
 
-    public function saveProduct(CateringProduct $product): void
+    public function saveProduct(CateringProduct $product): CateringProduct
     {
+        // For existing products, refresh from database to ensure we have the managed entity
+        if ($product->getId()) {
+            error_log("Saving existing product ID: " . $product->getId());
+            error_log("Input product code: " . ($product->getProductCode() ?? 'NULL'));
+            error_log("Input addons count: " . $product->getIncludedInAddons()->count());
+            
+            $managedProduct = $this->productRepository->find($product->getId());
+            if ($managedProduct) {
+                error_log("Found managed product, updating...");
+                
+                // Update the managed entity with form data
+                $managedProduct->setName($product->getName());
+                $managedProduct->setDescription($product->getDescription());
+                $managedProduct->setPrice($product->getPrice());
+                $managedProduct->setActive($product->isActive());
+                $managedProduct->setProductCode($product->getProductCode());
+                $managedProduct->setSortIndex($product->getSortIndex());
+                
+                error_log("Updated managed product code: " . ($managedProduct->getProductCode() ?? 'NULL'));
+                
+                // Handle addon relationships - we need to carefully update the collection
+                // First, remove all current relationships that are not in the new collection
+                $currentAddons = $managedProduct->getIncludedInAddons()->toArray();
+                $newAddons = $product->getIncludedInAddons()->toArray();
+                
+                error_log("Current addons: " . count($currentAddons));
+                error_log("New addons: " . count($newAddons));
+                
+                // Remove addons that are no longer selected
+                foreach ($currentAddons as $currentAddon) {
+                    if (!in_array($currentAddon, $newAddons, true)) {
+                        error_log("Removing addon: " . $currentAddon->getName());
+                        $managedProduct->removeIncludedInAddon($currentAddon);
+                    }
+                }
+                
+                // Add new addons that weren't previously selected
+                foreach ($newAddons as $newAddon) {
+                    if (!in_array($newAddon, $currentAddons, true)) {
+                        error_log("Adding addon: " . $newAddon->getName());
+                        $managedProduct->addIncludedInAddon($newAddon);
+                    }
+                }
+                
+                error_log("About to flush changes...");
+                $this->em->flush();
+                error_log("Flush completed");
+                return $managedProduct;
+            }
+        }
+        
+        // For new products, persist as usual
+        error_log("Saving new product");
         $this->em->persist($product);
         $this->em->flush();
+        return $product;
     }
 
     public function deleteProduct(CateringProduct $product): void
@@ -401,5 +496,10 @@ class CateringService
     {
         $uuid = $user instanceof User ? $user->getUuid() : $user;
         return $this->orderRepository->getTotalSpentByUser($uuid);
+    }
+
+    public function allocOrderPosition(): CateringOrderPosition
+    {
+        return new CateringOrderPosition();
     }
 }

@@ -8,22 +8,36 @@ use App\Entity\CateringOrderHistoryAction;
 use App\Entity\CateringOrderPosition;
 use App\Entity\CateringOrderStatus;
 use App\Entity\CateringProduct;
+use App\Entity\ShopAddon;
 use DateTimeImmutable;
 use Doctrine\Bundle\FixturesBundle\Fixture;
+use Doctrine\Common\DataFixtures\DependentFixtureInterface;
 use Doctrine\Persistence\ObjectManager;
 use Ramsey\Uuid\Uuid;
 
-class CateringFixture extends Fixture
+class CateringFixture extends Fixture implements DependentFixtureInterface
 {
+    public function getDependencies(): array
+    {
+        return [
+            ShopFixture::class,
+        ];
+    }
+
     public function load(ObjectManager $manager): void
     {
+        // Get addons from ShopFixture references
+        /** @var ShopAddon $cateringAddon1 */
+        $cateringAddon1 = $this->getReference('addon-0'); // Catering Guthaben 50€
+        /** @var ShopAddon $cateringAddon2 */
+        $cateringAddon2 = $this->getReference('addon-1'); // Catering Guthaben 100€
+
         // Create sample products
         $product1 = (new CateringProduct())
             ->setName('Cola 0.5L')
             ->setDescription('Erfrischende Cola')
             ->setPrice(250) // 2.50 EUR
             ->setActive(true)
-            ->setIncludedInFlat(false)
             ->setProductCode('COLA05')
             ->setSortIndex(1);
 
@@ -32,7 +46,6 @@ class CateringFixture extends Fixture
             ->setDescription('Klassische Pizza mit Tomaten und Mozzarella')
             ->setPrice(850) // 8.50 EUR
             ->setActive(true)
-            ->setIncludedInFlat(false)
             ->setProductCode('PIZZA01')
             ->setSortIndex(2);
 
@@ -41,16 +54,17 @@ class CateringFixture extends Fixture
             ->setDescription('Heißer Kaffee')
             ->setPrice(0) // Free
             ->setActive(true)
-            ->setIncludedInFlat(true)
             ->setProductCode('COFFEE')
             ->setSortIndex(3);
+        // Add catering products to both addons (they include coffee)
+        $product3->addIncludedInAddon($cateringAddon1);
+        $product3->addIncludedInAddon($cateringAddon2);
 
         $product4 = (new CateringProduct())
             ->setName('Energy Drink')
             ->setDescription('Red Bull oder ähnlich')
             ->setPrice(300) // 3.00 EUR
             ->setActive(true)
-            ->setIncludedInFlat(false)
             ->setProductCode('ENERGY')
             ->setSortIndex(4);
 
@@ -59,16 +73,17 @@ class CateringFixture extends Fixture
             ->setDescription('Stilles Wasser')
             ->setPrice(0) // Free
             ->setActive(true)
-            ->setIncludedInFlat(true)
             ->setProductCode('WATER05')
             ->setSortIndex(5);
+        // Add water to both catering addons
+        $product5->addIncludedInAddon($cateringAddon1);
+        $product5->addIncludedInAddon($cateringAddon2);
 
         $product6 = (new CateringProduct())
             ->setName('Hamburger')
             ->setDescription('Klassischer Hamburger mit Pommes')
             ->setPrice(950) // 9.50 EUR
             ->setActive(false) // Inactive example
-            ->setIncludedInFlat(false)
             ->setProductCode('BURGER01')
             ->setSortIndex(6);
 

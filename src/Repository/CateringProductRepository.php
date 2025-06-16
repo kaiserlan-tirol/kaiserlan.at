@@ -31,13 +31,33 @@ class CateringProductRepository extends ServiceEntityRepository
         return $this->findOneBy(['productCode' => $productCode]);
     }
 
+    /**
+     * Find products that are included in any addon
+     */
     public function findIncludedInFlat(): array
     {
-        return $this->findBy(['active' => true, 'includedInFlat' => true], ['sortIndex' => 'ASC']);
+        return $this->createQueryBuilder('p')
+            ->leftJoin('p.includedInAddons', 'a')
+            ->where('p.active = :active')
+            ->andWhere('a.id IS NOT NULL')
+            ->setParameter('active', true)
+            ->orderBy('p.sortIndex', 'ASC')
+            ->getQuery()
+            ->getResult();
     }
 
+    /**
+     * Find products that are not included in any addon (paid products)
+     */
     public function findPaidProducts(): array
     {
-        return $this->findBy(['active' => true, 'includedInFlat' => false], ['sortIndex' => 'ASC']);
+        return $this->createQueryBuilder('p')
+            ->leftJoin('p.includedInAddons', 'a')
+            ->where('p.active = :active')
+            ->andWhere('a.id IS NULL')
+            ->setParameter('active', true)
+            ->orderBy('p.sortIndex', 'ASC')
+            ->getQuery()
+            ->getResult();
     }
 }

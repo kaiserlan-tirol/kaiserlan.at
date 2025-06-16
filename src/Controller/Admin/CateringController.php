@@ -121,7 +121,7 @@ class CateringController extends AbstractController
         ]);
         $form->handleRequest($request);
         if ($form->isSubmitted() && $form->isValid()) {
-            $this->cateringService->saveProduct($form->getData());
+            $savedProduct = $this->cateringService->saveProduct($form->getData());
             $this->addFlash('success', "Produkt wurde erfolgreich angelegt.");
             return $this->redirectToRoute('admin_catering_product');
         }
@@ -146,10 +146,36 @@ class CateringController extends AbstractController
         ]);
 
         $form->handleRequest($request);
-        if ($form->isSubmitted() && $form->isValid()) {
-            $this->cateringService->saveProduct($form->getData());
-            $this->addFlash('success', "Änderung an Produkt {$product->getId()} erfolgreich.");
-            return $this->redirectToRoute('admin_catering_product');
+        if ($form->isSubmitted()) {
+            // Debug logging
+            error_log("Form submitted for product ID: " . $product->getId());
+            error_log("CSRF token from form: " . ($request->request->get('_token') ?? 'NULL'));
+            error_log("All form data: " . print_r($request->request->all(), true));
+            
+            if ($form->isValid()) {
+                $formData = $form->getData();
+                
+                // Debug logging
+                error_log("Form valid - Product ID: " . $formData->getId());
+                error_log("Product Code: " . ($formData->getProductCode() ?? 'NULL'));
+                error_log("Addons count: " . $formData->getIncludedInAddons()->count());
+                
+                $savedProduct = $this->cateringService->saveProduct($formData);
+                
+                error_log("After save - Product Code: " . ($savedProduct->getProductCode() ?? 'NULL'));
+                error_log("After save - Addons count: " . $savedProduct->getIncludedInAddons()->count());
+                
+                $this->addFlash('success', "Änderung an Produkt {$savedProduct->getId()} erfolgreich.");
+                return $this->redirectToRoute('admin_catering_product');
+            } else {
+                // Form has validation errors
+                $errors = [];
+                foreach ($form->getErrors(true) as $error) {
+                    $errors[] = $error->getMessage();
+                }
+                error_log("Form validation errors: " . implode(', ', $errors));
+                $this->addFlash('error', 'Formular enthält Fehler: ' . implode(', ', $errors));
+            }
         }
 
         $template = $request->isXmlHttpRequest() 
@@ -257,10 +283,8 @@ class CateringController extends AbstractController
             foreach ($products as $product) {
                 $quantity = $data['product' . $product->getId()] ?? 0;
                 if ($quantity > 0) {
-                    $position = $this->cateringService->allocOrderPosition();
-                    $position->fillWithProduct($product);
-                    $position->setQuantity($quantity);
-                    $order->addCateringOrderPosition($position);
+                    // Use the service method to add product with proper pricing
+                    $this->cateringService->orderAddProduct($order, $product, $quantity);
                     $hasItems = true;
                 }
             }
