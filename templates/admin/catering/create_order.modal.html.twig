@@ -5,22 +5,115 @@
     'dialogClass' : 'modal-xl'
 } %}
     {% block modalBody %}
+        <style>
+            .flatrate-badge .badge {
+                font-size: 90%;
+            }
+            .product-card.is-flatrate {
+                border-left: 3px solid #28a745;
+            }
+            .product-card {
+                transition: all 0.3s ease;
+            }
+            #loading-products {
+                min-height: 150px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                flex-direction: column;
+            }
+            
+            /* Quantity input with increment/decrement buttons */
+            .quantity-input-group {
+                display: flex;
+                align-items: center;
+                border: 1px solid #ced4da;
+                border-radius: 0.25rem;
+                overflow: hidden;
+                background: white;
+            }
+            
+            .quantity-btn {
+                background: #f8f9fa;
+                border: none;
+                padding: 0;
+                width: 24px;
+                height: 32px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                cursor: pointer;
+                transition: background-color 0.2s;
+                font-size: 14px;
+                color: #6c757d;
+            }
+            
+            .quantity-btn:hover {
+                background: #e9ecef;
+                color: #495057;
+            }
+            
+            .quantity-btn:active {
+                background: #dee2e6;
+            }
+            
+            .quantity-btn:disabled {
+                opacity: 0.5;
+                cursor: not-allowed;
+            }
+            
+            .quantity-input-group .form-control {
+                border: none;
+                text-align: center;
+                padding: 4px 8px;
+                width: 50px;
+                height: 32px;
+                font-size: 14px;
+            }
+            
+            .quantity-input-group .form-control:focus {
+                box-shadow: none;
+                border-color: transparent;
+            }
+            
+            /* Ensure input doesn't show spinner arrows in Chrome/Safari */
+            .quantity-input-group input[type=number]::-webkit-outer-spin-button,
+            .quantity-input-group input[type=number]::-webkit-inner-spin-button {
+                -webkit-appearance: none;
+                margin: 0;
+            }
+            
+            /* Firefox */
+            .quantity-input-group input[type=number] {
+                -moz-appearance: textfield;
+            }
+        </style>
         <div class="container-fluid">
             {{ form_start(form) }}
             <div class="form-group">
                 {{ form_label(form.user) }}
-                {{ form_widget(form.user, {'attr': {'class': 'form-control'}}) }}
+                {{ form_widget(form.user, {'attr': {'class': 'form-control', 'id': 'catering-user-select'}}) }}
                 {{ form_errors(form.user) }}
                 <small class="form-text text-muted">Suchen Sie nach dem Benutzernamen oder der E-Mail-Adresse</small>
             </div>
             
             <hr>
             
-            <h6>Produkte auswählen</h6>
-            <div class="row">
+            <div id="products-container" style="display: none;">
+                <h6>Produkte auswählen</h6>
+                <div id="loading-products" style="display: none;">
+                    <div class="text-center py-3">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="sr-only">Loading...</span>
+                        </div>
+                        <p class="mt-2">Produkte werden geladen...</p>
+                    </div>
+                </div>
+                
+                <div class="row" id="product-list">
                 {% for product in products %}
                     {% set field = 'product' ~ product.id %}
-                    <div class="col-md-6 mb-3">
+                    <div class="col-md-6 mb-3 product-card" data-product-id="{{ product.id }}">
                         <div class="card">
                             <div class="card-body p-2">
                                 <h6 class="card-title mb-1">{{ product.name }}</h6>
@@ -29,16 +122,21 @@
                                 {% endif %}
                                 <div class="d-flex justify-content-between align-items-center">
                                     <span class="price">
-                                        {% if product.includedInAddons|length > 0 %}
-                                            {% for addon in product.includedInAddons %}
-                                                <span class="badge badge-success me-1">{{ addon.name }}</span>
-                                            {% endfor %}
-                                        {% else %}
-                                            <strong>{{ (product.price/100) | format_currency('EUR') }}</strong>
-                                        {% endif %}
+                                        <span class="regular-price">{{ (product.price/100) | format_currency('EUR') }}</span>
+                                        <span class="flatrate-badge" style="display: none;">
+                                            <span class="badge badge-success">Inkludiert</span>
+                                        </span>
                                     </span>
                                     <div class="form-group mb-0">
-                                        {{ form_widget(form[field], {'attr': {'class': 'form-control product-quantity', 'style': 'width: 70px;'}}) }}
+                                        <div class="quantity-input-group">
+                                            <button type="button" class="quantity-btn quantity-decrement" data-target="{{ form[field].vars.id }}" title="Anzahl verringern" aria-label="Anzahl verringern">
+                                                <i class="fas fa-minus"></i>
+                                            </button>
+                                            {{ form_widget(form[field], {'attr': {'class': 'form-control product-quantity', 'data-price': product.price, 'min': '0', 'max': '99', 'step': '1'}}) }}
+                                            <button type="button" class="quantity-btn quantity-increment" data-target="{{ form[field].vars.id }}" title="Anzahl erhöhen" aria-label="Anzahl erhöhen">
+                                                <i class="fas fa-plus"></i>
+                                            </button>
+                                        </div>
                                         {{ form_errors(form[field]) }}
                                     </div>
                                 </div>
@@ -46,6 +144,7 @@
                         </div>
                     </div>
                 {% endfor %}
+                </div>
             </div>
             
             <div class="alert alert-info">
@@ -64,30 +163,4 @@
     {% endblock %}
 {% endembed %}
 
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    const quantityInputs = document.querySelectorAll('.product-quantity');
-    const totalPriceElement = document.getElementById('total-price');
-    
-    function updateTotal() {
-        let total = 0;
-        quantityInputs.forEach(input => {
-            const quantity = parseInt(input.value) || 0;
-            const price = parseInt(input.dataset.price) || 0;
-            total += quantity * price;
-        });
-        
-        totalPriceElement.textContent = (total / 100).toLocaleString('de-DE', {
-            style: 'currency',
-            currency: 'EUR'
-        });
-    }
-    
-    quantityInputs.forEach(input => {
-        input.addEventListener('input', updateTotal);
-    });
-    
-    // Initial calculation
-    updateTotal();
-});
-</script>
+{# The CateringOrder JavaScript module will be auto-initialized when the modal is shown #}

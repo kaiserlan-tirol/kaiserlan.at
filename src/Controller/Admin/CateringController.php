@@ -8,8 +8,11 @@ use App\Entity\User;
 use App\Exception\OrderLifecycleException;
 use App\Form\CateringProductType;
 use App\Form\CateringManualOrderType;
+use App\Idm\IdmManager;
+use App\Idm\IdmRepository;
 use App\Repository\CateringOrderRepository;
 use App\Service\CateringService;
+use Ramsey\Uuid\Uuid;
 use Sensio\Bundle\FrameworkExtraBundle\Configuration\IsGranted;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -24,14 +27,16 @@ class CateringController extends AbstractController
     private readonly CateringService $cateringService;
     private readonly CateringOrderRepository $orderRepository;
     private readonly SerializerInterface $serializer;
+    private readonly IdmRepository $userRepo;
 
     private const CSRF_TOKEN_PAYED = 'cateringToken';
 
-    public function __construct(CateringService $cateringService, CateringOrderRepository $orderRepository, SerializerInterface $serializer)
+    public function __construct(CateringService $cateringService, CateringOrderRepository $orderRepository, SerializerInterface $serializer, IdmManager $idmManager)
     {
         $this->cateringService = $cateringService;
         $this->orderRepository = $orderRepository;
         $this->serializer = $serializer;
+        $this->userRepo = $idmManager->getRepository(User::class);
     }
 
     #[Route(path: '', name: '', methods: ['GET'])]
@@ -284,6 +289,7 @@ class CateringController extends AbstractController
                 $quantity = $data['product' . $product->getId()] ?? 0;
                 if ($quantity > 0) {
                     // Use the service method to add product with proper pricing
+                    // This automatically handles flatrate products (setting price to 0)
                     $this->cateringService->orderAddProduct($order, $product, $quantity);
                     $hasItems = true;
                 }
@@ -315,7 +321,52 @@ class CateringController extends AbstractController
 
         return $this->render($template, [
             'form' => $form->createView(),
-            'products' => $products
+            'products' => $products,
+            'hideProductsInitially' => true
         ]);
+    }
+    
+    #[Route(path: '/user-products/{uuid}', name: '_user_products', methods: ['GET'])]
+    public function getUserProducts(string $uuid): Response
+    {
+        try {
+            $user = $this->userRepo->findOneById(Uuid::fromString($uuid));
+            if (!$user) {
+                return $this->json(['error' => 'User not found'], 404);
+            }
+            
+            $allProducts = $this->cateringService->getProducts();
+            $userAddons = $this->cateringService->getUserAddons($user);
+            $productData = [];
+            
+            foreach ($allProducts as $product) {
+                $includedInFlatrate = $product->isIncludedInAnyAddon($userAddons);
+                $productData[] = [
+                    'id' => $product->getId(),
+                    'name' => $product->getName(),
+                    'description' => $product->getDescription(),
+                    'price' => $product->getPrice(),
+                    'includedInFlatrate' => $includedInFlatrate,
+                    'addons' => array_map(function($addon) {
+                        return [
+                            'id' => $addon->getId(),
+                            'name' => $addon->getName()
+                        ];
+                    }, $product->getIncludedInAddons()->toArray())
+                ];
+            }
+            
+            return $this->json([
+                'success' => true,
+                'products' => $productData,
+                'user' => [
+                    'uuid' => $user->getUuid(),
+                    'nickname' => $user->getNickname()
+                ]
+            ]);
+            
+        } catch (\Exception $e) {
+            return $this->json(['error' => $e->getMessage()], 500);
+        }
     }
 }
