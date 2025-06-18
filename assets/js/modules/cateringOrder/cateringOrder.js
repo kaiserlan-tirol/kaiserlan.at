@@ -43,7 +43,6 @@ import $ from "jquery";
     
     $.extend(CateringOrder.prototype, {
         init() {
-            console.log('CateringOrder module initialized');
             this._findElements();
             this._setupEventListeners();
             this._updateTotal();
@@ -67,19 +66,11 @@ import $ from "jquery";
             this.loadingIndicator = document.querySelector(this.settings.loadingIndicatorSelector);
             this.productList = document.querySelector(this.settings.productListSelector);
             this.totalPriceElement = document.querySelector(this.settings.totalPriceSelector);
-            
-            console.log('Elements found:', {
-                userSelect: !!this.userSelect,
-                productsContainer: !!this.productsContainer,
-                loadingIndicator: !!this.loadingIndicator,
-                productList: !!this.productList,
-                totalPriceElement: !!this.totalPriceElement
-            });
         },
         
         _setupEventListeners() {
             if (!this.userSelect) {
-                console.error('User select element not found!');
+                // User select element not found, nothing to do
                 return;
             }
             
@@ -87,16 +78,10 @@ import $ from "jquery";
             const jQueryAvailable = (typeof $ !== 'undefined') || (typeof jQuery !== 'undefined');
             const jq = $ || jQuery;
             
-            console.log('jQuery available:', jQueryAvailable);
-            
             if (jQueryAvailable && jq(this.userSelect).hasClass('select2-hidden-accessible')) {
-                console.log('Using select2 events');
-                
                 // For select2, we need to listen to the select2:select event
                 jq(this.userSelect).on('select2:select', (e) => {
-                    console.log('Select2 selection event:', e);
                     const uuid = e.params.data.id;
-                    console.log('Select2 selected UUID:', uuid);
                     if (uuid) {
                         this._loadUserProducts(uuid);
                     }
@@ -104,27 +89,18 @@ import $ from "jquery";
                 
                 // Also listen to select2:clear for when selection is cleared
                 jq(this.userSelect).on('select2:clear', (e) => {
-                    console.log('Select2 cleared');
                     this.activeUserUuid = null;
                     if (this.productsContainer) {
                         this.productsContainer.style.display = 'none';
                     }
                 });
             } else {
-                console.log('Using standard change event');
-                
                 // Standard change event as fallback
                 this.userSelect.addEventListener('change', () => {
-                    console.log('Standard change event triggered!');
-                    console.log('Selected option:', this.userSelect.selectedOptions[0]);
-                    console.log('Value:', this.userSelect.value);
-                    
                     const uuid = this.userSelect.value;
                     if (uuid && uuid !== '') {
-                        console.log('Valid UUID found, loading products for:', uuid);
                         this._loadUserProducts(uuid);
                     } else {
-                        console.log('No valid UUID available, value was:', uuid);
                         this.activeUserUuid = null;
                         if (this.productsContainer) {
                             this.productsContainer.style.display = 'none';
@@ -226,19 +202,21 @@ import $ from "jquery";
         },
         
         _loadUserProducts(uuid) {
-            console.log('_loadUserProducts called with UUID:', uuid);
-            
             if (!uuid || uuid === '') {
-                console.log('No UUID provided, hiding products container');
                 if (this.productsContainer) {
                     this.productsContainer.style.display = 'none';
                 }
                 return;
             }
             
+            // Special case for "Gast" - show products immediately with regular pricing
+            if (uuid === 'guest') {
+                this._showGuestProducts();
+                return;
+            }
+            
             // Don't reload if user hasn't changed
             if (uuid === this.activeUserUuid) {
-                console.log('User UUID unchanged, showing products container without reload');
                 if (this.productsContainer) {
                     this.productsContainer.style.display = 'block';
                 }
@@ -246,7 +224,6 @@ import $ from "jquery";
             }
             
             this.activeUserUuid = uuid;
-            console.log('Showing products container and loading indicator');
             
             if (this.productsContainer) {
                 this.productsContainer.style.display = 'block';
@@ -259,29 +236,76 @@ import $ from "jquery";
             }
             
             const url = `${this.settings.userProductsEndpoint}${uuid}`;
-            console.log('Fetching from URL:', url);
             
             fetch(url)
                 .then(response => {
-                    console.log('Response status:', response.status);
                     if (!response.ok) {
                         throw new Error(`HTTP error! Status: ${response.status}`);
                     }
                     return response.json();
                 })
                 .then(data => {
-                    console.log('Response data:', data);
                     if (data.success) {
                         this.userProducts = data.products;
-                        console.log('Products loaded:', this.userProducts.length);
                         this._updateProductDisplay();
                     } else {
-                        console.error('Error loading user products:', data.error);
+                        this._showError('Could not load user products');
                     }
                     this._hideLoadingIndicator();
                 })
-                .catch(error => {
-                    console.error('Fetch error:', error);
+                .catch(() => {
+                    this._showError('Failed to load products');
+                    this._hideLoadingIndicator();
+                });
+        },
+        
+        _showGuestProducts() {
+            // For guest users, show all products with regular pricing (no flatrate)
+            this.activeUserUuid = 'guest';
+            
+            if (this.productsContainer) {
+                this.productsContainer.style.display = 'block';
+            }
+            if (this.productList) {
+                this.productList.style.display = 'none';
+            }
+            if (this.loadingIndicator) {
+                this.loadingIndicator.style.display = 'block';
+            }
+            
+            // Fetch all products with regular pricing for guest users
+            const url = `${this.settings.userProductsEndpoint}guest`;
+            
+            fetch(url)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! Status: ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    if (data.success) {
+                        this.userProducts = data.products;
+                        this._updateProductDisplay();
+                        
+                        // Add a note that this is a guest order
+                        const guestNote = document.createElement('div');
+                        guestNote.className = 'alert alert-info mt-3';
+                        guestNote.innerHTML = '<strong>Gast-Bestellung</strong>: Bitte beachten Sie, dass alle Produkte zum regulären Preis berechnet werden.';
+                        
+                        // Add to the top of product list
+                        if (this.productList && this.productList.firstChild) {
+                            this.productList.insertBefore(guestNote, this.productList.firstChild);
+                        } else if (this.productList) {
+                            this.productList.appendChild(guestNote);
+                        }
+                    } else {
+                        this._showError('Could not load guest products');
+                    }
+                    this._hideLoadingIndicator();
+                })
+                .catch(() => {
+                    this._showError('Failed to load products');
                     this._hideLoadingIndicator();
                 });
         },
@@ -323,7 +347,7 @@ import $ from "jquery";
         
         _updateTotal() {
             if (!this.totalPriceElement) {
-                console.warn('Total price element not found, skipping total update');
+                // Skip silently if price element isn't found
                 return;
             }
             
@@ -331,7 +355,11 @@ import $ from "jquery";
             const quantityInputs = document.querySelectorAll(this.settings.productQuantitySelector);
             
             if (quantityInputs.length === 0) {
-                console.warn('No product quantity inputs found');
+                // No inputs found, set total to 0
+                this.totalPriceElement.textContent = (0).toLocaleString('de-DE', {
+                    style: 'currency',
+                    currency: 'EUR'
+                });
                 return;
             }
             
@@ -343,7 +371,7 @@ import $ from "jquery";
                 const productCard = input.closest(this.settings.productCardSelector);
                 
                 if (!productCard) {
-                    console.warn('Product card not found for input:', input);
+                    // Skip this input if there's no associated product card
                     return;
                 }
                 
@@ -400,6 +428,49 @@ import $ from "jquery";
                     incrementBtn.style.cursor = 'pointer';
                 }
             }
+        },
+        
+        /**
+         * Display an error message to the user
+         * @param {string} message - The error message to show
+         * @private
+         */
+        _showError(message) {
+            // Check if there's already an alert, remove it if so
+            const existingAlert = document.querySelector('#catering-error-alert');
+            if (existingAlert) {
+                existingAlert.remove();
+            }
+            
+            // Create a new alert
+            const alertElement = document.createElement('div');
+            alertElement.id = 'catering-error-alert';
+            alertElement.className = 'alert alert-danger mt-3';
+            alertElement.role = 'alert';
+            alertElement.innerHTML = `
+                <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+                ${message}
+            `;
+            
+            // Find a good place to insert the alert
+            if (this.productsContainer) {
+                this.productsContainer.insertAdjacentElement('beforebegin', alertElement);
+            } else {
+                // Fallback to inserting it after the user select
+                const userSelect = document.querySelector(this.settings.userSelectSelector);
+                if (userSelect && userSelect.parentNode) {
+                    userSelect.parentNode.insertAdjacentElement('afterend', alertElement);
+                }
+            }
+            
+            // Auto hide after 5 seconds
+            setTimeout(() => {
+                if (alertElement.parentNode) {
+                    alertElement.remove();
+                }
+            }, 5000);
         }
     });
     
@@ -411,10 +482,35 @@ import $ from "jquery";
     
     // Auto-initialize when modal is shown
     $(document).on('shown.bs.modal', '#createCateringOrderModal', function() {
-        console.log('Catering order modal shown, initializing...');
-        // Small delay to ensure all elements are rendered
         setTimeout(() => {
             new CateringOrder();
+            
+            // Add handler for the manual submit button
+            const manualSubmitBtn = document.getElementById('manual-submit-button');
+            if (manualSubmitBtn) {
+                manualSubmitBtn.addEventListener('click', function(e) {
+                    const hiddenSubmitBtn = document.getElementById('hidden-form-submit');
+                    
+                    if (hiddenSubmitBtn) {
+                        // This will trigger proper form validation and submission
+                        hiddenSubmitBtn.click(); 
+                    } else {
+                        // Fallback to direct form submission
+                        const form = document.getElementById('catering-order-form');
+                        if (form) {
+                            form.submit();
+                        }
+                    }
+                });
+            }
+            
+            // Add handler for the form itself
+            const form = document.getElementById('catering-order-form');
+            if (form) {
+                form.addEventListener('submit', function(e) {
+                    // Let the form submit naturally
+                });
+            }
         }, 100);
     });
     

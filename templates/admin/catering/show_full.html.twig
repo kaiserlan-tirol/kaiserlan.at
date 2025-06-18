@@ -1,9 +1,17 @@
-{% extends 'modal.html.twig' %}
+{% extends 'admin/adminBase.html.twig' %}
 
-{% block title %}Catering Bestellung #{{ order.id }}{% endblock %}
-
-{% block content %}
+{% block title %}Catering Bestellung #{{ order.id }} - KLMS - Admin{% endblock %}
+{% block siteheading %}<i class="fas fa-utensils"></i> Catering Bestellung #{{ order.id }}{% endblock %}
+{% block main %}
 <div class="container">
+    <div class="row">
+        <div class="col-12 mb-3">
+            <a href="{{ path('admin_catering') }}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Zurück zur Übersicht
+            </a>
+        </div>
+    </div>
+
     <div class="row">
         <div class="col-md-8">
             <h2>Bestellung #{{ order.id }}</h2>
@@ -108,7 +116,7 @@
                         <form method="post" action="{{ path('admin_catering_edit', {'id': order.id}) }}">
                             <input type="hidden" name="_token" value="{{ csrf_token(csrf_token) }}">
                             <button type="submit" name="action" value="undo" class="btn btn-warning btn-block mb-2" onclick="return confirm('Bezahlung wirklich rückgängig machen?')">
-                                <i class="fas fa-undo"></i> Rückerstatten
+                                <i class="fas fa-undo"></i> Bezahlung rückgängig
                             </button>
                         </form>
                         

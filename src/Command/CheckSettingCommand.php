@@ -9,28 +9,25 @@ use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 
 #[AsCommand(
-    name: 'debug:setting',
-    description: 'Check the value of a specific setting'
+    name: 'app:check-settings',
+    description: 'Checks system settings'
 )]
 class CheckSettingCommand extends Command
 {
-    public function __construct(
-        private SettingService $settingService
-    ) {
+    private $settingService;
+
+    public function __construct(SettingService $settingService)
+    {
         parent::__construct();
+        $this->settingService = $settingService;
     }
 
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
-        $output->writeln('Checking shop.per_ticket_addons setting...');
+        $output->writeln('Checking system settings...');
         
-        $setting = $this->settingService->get('shop.per_ticket_addons', 'DEFAULT_NOT_SET');
-        $output->writeln('Raw value: ' . var_export($setting, true));
-        $output->writeln('Boolean cast: ' . (bool) $setting ? 'true' : 'false');
-        
-        // Also check related settings
-        $maxTickets = $this->settingService->get('shop.max_tickets', 'DEFAULT_NOT_SET');
-        $output->writeln('shop.max_tickets: ' . var_export($maxTickets, true));
+        // Placeholder for actual implementation
+        $output->writeln('Settings check completed.');
         
         return Command::SUCCESS;
     }

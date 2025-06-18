@@ -4,10 +4,20 @@ namespace App\Entity;
 
 enum ShopOrderHistoryAction : string
 {
-    case OrderCreated = 'order_created';
-    case PaymentSuccessful = 'payment_successful';
-    case PaymentFailed = 'payment_failed';
-    case PaymentNotice = 'payment_notice';
-    case OrderRefunded = 'payment_refunded';
-    case OrderCanceled = 'payment_canceled';
+    case OrderCreated = 'Bestellung erstellt';
+    case PaymentSuccessful = 'Bezahlung erfolgreich';
+    case PaymentFailed = 'Bezahlung fehlgeschlagen';
+    case PaymentNotice = 'Zahlungshinweis';
+    case OrderRefunded = 'Bestellung rückerstattet';
+    case OrderCanceled = 'Bestellung storniert';
+    
+    /**
+     * Get a formatted display value for the action
+     *
+     * @return string The formatted display value
+     */
+    public function getDisplayValue(): string
+    {
+        return $this->value;
+    }
 }

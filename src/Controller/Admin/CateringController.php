@@ -19,24 +19,31 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
 use Symfony\Component\Serializer\SerializerInterface;
+use Psr\Log\LoggerInterface;
 
 #[IsGranted('ROLE_ADMIN_PAYMENT')]
 #[Route(path: '/catering', name: 'catering')]
-class CateringController extends AbstractController
-{
+class CateringController extends AbstractController {
     private readonly CateringService $cateringService;
     private readonly CateringOrderRepository $orderRepository;
     private readonly SerializerInterface $serializer;
     private readonly IdmRepository $userRepo;
+    private readonly LoggerInterface $logger;
 
     private const CSRF_TOKEN_PAYED = 'cateringToken';
 
-    public function __construct(CateringService $cateringService, CateringOrderRepository $orderRepository, SerializerInterface $serializer, IdmManager $idmManager)
-    {
+    public function __construct(
+        CateringService $cateringService, 
+        CateringOrderRepository $orderRepository, 
+        SerializerInterface $serializer, 
+        IdmManager $idmManager,
+        LoggerInterface $logger
+    ) {
         $this->cateringService = $cateringService;
         $this->orderRepository = $orderRepository;
         $this->serializer = $serializer;
         $this->userRepo = $idmManager->getRepository(User::class);
+        $this->logger = $logger;
     }
 
     #[Route(path: '', name: '', methods: ['GET'])]
@@ -52,6 +59,10 @@ class CateringController extends AbstractController
     #[Route(path: '/order/{id}', name:'_edit', requirements: ['id' => '\d+'], methods: ['POST'])]
     public function edit(Request $request, ?CateringOrder $order): Response
     {
+        if (empty($order)) {
+            throw $this->createNotFoundException('Order not found');
+        }
+        
         $token = $request->request->get('_token');
         if (!$this->isCsrfTokenValid(self::CSRF_TOKEN_PAYED, $token)) {
             throw $this->createAccessDeniedException('Invalid CSRF token presented');
@@ -80,7 +91,13 @@ class CateringController extends AbstractController
                     return $this->redirectToRoute('admin_catering');
             }
         } catch (OrderLifecycleException $e) {
-            $this->addFlash('error', "Aktion konnte nicht durchgeführt werden ({$e->getMessage()}).");
+            $errorMessage = $e->getMessage() ? "Aktion konnte nicht durchgeführt werden: {$e->getMessage()}" : "Aktion konnte nicht durchgeführt werden. Diese Statusänderung ist nicht erlaubt.";
+            $this->logger->warning($errorMessage, [
+                'orderId' => $order->getId(),
+                'action' => $action,
+                'status' => $order->getStatus()->name
+            ]);
+            $this->addFlash('error', $errorMessage);
             return $this->redirectToRoute('admin_catering');
         }
 
@@ -95,11 +112,12 @@ class CateringController extends AbstractController
             throw $this->createNotFoundException('Order not found');
         }
 
-        if (!$request->isXmlHttpRequest()) {
-            throw $this->createNotFoundException();
-        }
+        // Allow both AJAX and direct access to this route
+        $template = $request->isXmlHttpRequest() 
+            ? 'admin/catering/show.html.twig' 
+            : 'admin/catering/show_full.html.twig';
 
-        return $this->render('admin/catering/show.html.twig', [
+        return $this->render($template, [
             'order' => $order,
             'csrf_token' => self::CSRF_TOKEN_PAYED
         ]);
@@ -152,23 +170,9 @@ class CateringController extends AbstractController
 
         $form->handleRequest($request);
         if ($form->isSubmitted()) {
-            // Debug logging
-            error_log("Form submitted for product ID: " . $product->getId());
-            error_log("CSRF token from form: " . ($request->request->get('_token') ?? 'NULL'));
-            error_log("All form data: " . print_r($request->request->all(), true));
-            
             if ($form->isValid()) {
                 $formData = $form->getData();
-                
-                // Debug logging
-                error_log("Form valid - Product ID: " . $formData->getId());
-                error_log("Product Code: " . ($formData->getProductCode() ?? 'NULL'));
-                error_log("Addons count: " . $formData->getIncludedInAddons()->count());
-                
                 $savedProduct = $this->cateringService->saveProduct($formData);
-                
-                error_log("After save - Product Code: " . ($savedProduct->getProductCode() ?? 'NULL'));
-                error_log("After save - Addons count: " . $savedProduct->getIncludedInAddons()->count());
                 
                 $this->addFlash('success', "Änderung an Produkt {$savedProduct->getId()} erfolgreich.");
                 return $this->redirectToRoute('admin_catering_product');
@@ -178,7 +182,6 @@ class CateringController extends AbstractController
                 foreach ($form->getErrors(true) as $error) {
                     $errors[] = $error->getMessage();
                 }
-                error_log("Form validation errors: " . implode(', ', $errors));
                 $this->addFlash('error', 'Formular enthält Fehler: ' . implode(', ', $errors));
             }
         }
@@ -259,26 +262,59 @@ class CateringController extends AbstractController
     #[Route(path: '/order/create', name: '_order_create', methods: ['GET', 'POST'])]
     public function createOrder(Request $request): Response
     {
+        // Debug information
+        $method = $request->getMethod();
+        $this->logger->info('Request to createOrder', [
+            'method' => $method,
+            'path' => $request->getPathInfo(),
+            'query' => $request->query->all(),
+            'request' => $request->request->all(),
+            'content_type' => $request->headers->get('Content-Type'),
+            'is_ajax' => $request->isXmlHttpRequest(),
+            'form_submitted' => $request->isMethod('POST')
+        ]);
+        
+        // Method already captured in the debug log above
+        
         $products = $this->cateringService->getProducts();
         
         $form = $this->createForm(\App\Form\CateringManualOrderType::class, null, [
             'products' => $products,
         ]);
 
+        // Debug information
+        $this->logger->info('Request received', [
+            'method' => $request->getMethod(),
+            'path' => $request->getPathInfo(),
+            'content_type' => $request->headers->get('Content-Type'),
+        ]);
+        
         $form->handleRequest($request);
-        if ($form->isSubmitted() && $form->isValid()) {
-            $data = $form->getData();
-            $user = $data['user'];
+        if ($form->isSubmitted()) {
+            $this->logger->info('Form submitted', [
+                'valid' => $form->isValid(),
+                'errors' => $this->getFormErrors($form)
+            ]);
             
-            if (!$user) {
-                $this->addFlash('error', 'Bitte wählen Sie einen Benutzer aus.');
-                $template = $request->isXmlHttpRequest() 
-                    ? 'admin/catering/create_order.modal.html.twig' 
-                    : 'admin/catering/create_order.html.twig';
-                return $this->render($template, [
-                    'form' => $form->createView(),
-                    'products' => $products
-                ]);
+            if ($form->isValid()) {
+                $data = $form->getData();
+                $user = $data['user'];
+            
+                if (!$user) {
+                    $this->addFlash('error', 'Bitte wählen Sie einen Benutzer aus.');
+                    $template = $request->isXmlHttpRequest() 
+                        ? 'admin/catering/create_order.modal.html.twig' 
+                        : 'admin/catering/create_order.html.twig';
+                    return $this->render($template, [
+                        'form' => $form->createView(),
+                        'products' => $products
+                    ]);
+                }
+            
+            // Handle guest user case
+            $isGuest = false;
+            if ($user instanceof User && $user->getUuid()->toString() === '00000000-0000-0000-0000-000000000000') {
+                $isGuest = true;
             }
 
             $order = $this->cateringService->allocOrder($user);
@@ -308,10 +344,18 @@ class CateringController extends AbstractController
 
             try {
                 $this->cateringService->persistOrder($order);
-                $this->addFlash('success', "Bestellung für {$user->getNickname()} wurde erfolgreich erstellt.");
+                
+                // Custom success message for guest orders
+                if ($isGuest) {
+                    $this->addFlash('success', "Gast-Bestellung wurde erfolgreich erstellt.");
+                } else {
+                    $this->addFlash('success', "Bestellung für {$user->getNickname()} wurde erfolgreich erstellt.");
+                }
+                
                 return $this->redirectToRoute('admin_catering');
             } catch (\Exception $e) {
                 $this->addFlash('error', 'Fehler beim Erstellen der Bestellung: ' . $e->getMessage());
+            }
             }
         }
 
@@ -330,17 +374,29 @@ class CateringController extends AbstractController
     public function getUserProducts(string $uuid): Response
     {
         try {
-            $user = $this->userRepo->findOneById(Uuid::fromString($uuid));
-            if (!$user) {
-                return $this->json(['error' => 'User not found'], 404);
+            // Special case for "guest" - a hardcoded string to indicate a guest user
+            $isGuest = ($uuid === 'guest' || $uuid === 'gast');
+            
+            if (!$isGuest) {
+                $user = $this->userRepo->findOneById(Uuid::fromString($uuid));
+                if (!$user) {
+                    return $this->json(['error' => 'User not found'], 404);
+                }
+            } else {
+                // Create a temporary guest user
+                $user = new User();
+                $user->setUuid(Uuid::fromString('00000000-0000-0000-0000-000000000000'));
+                $user->setNickname('Gast');
+                $user->setEmail('guest@example.com');
             }
             
             $allProducts = $this->cateringService->getProducts();
-            $userAddons = $this->cateringService->getUserAddons($user);
+            $userAddons = $isGuest ? [] : $this->cateringService->getUserAddons($user);
             $productData = [];
             
             foreach ($allProducts as $product) {
-                $includedInFlatrate = $product->isIncludedInAnyAddon($userAddons);
+                // For guest users, nothing is included in flatrate
+                $includedInFlatrate = $isGuest ? false : $product->isIncludedInAnyAddon($userAddons);
                 $productData[] = [
                     'id' => $product->getId(),
                     'name' => $product->getName(),
@@ -356,17 +412,30 @@ class CateringController extends AbstractController
                 ];
             }
             
+            $userData = $isGuest 
+                ? ['uuid' => 'guest', 'nickname' => 'Gast'] 
+                : ['uuid' => $user->getUuid(), 'nickname' => $user->getNickname()];
+            
             return $this->json([
                 'success' => true,
                 'products' => $productData,
-                'user' => [
-                    'uuid' => $user->getUuid(),
-                    'nickname' => $user->getNickname()
-                ]
+                'user' => $userData
             ]);
             
         } catch (\Exception $e) {
             return $this->json(['error' => $e->getMessage()], 500);
         }
+    }
+
+    /**
+     * Helper method to get form errors as an array for debugging
+     */
+    private function getFormErrors($form): array
+    {
+        $errors = [];
+        foreach ($form->getErrors(true) as $error) {
+            $errors[] = $error->getMessage();
+        }
+        return $errors;
     }
 }

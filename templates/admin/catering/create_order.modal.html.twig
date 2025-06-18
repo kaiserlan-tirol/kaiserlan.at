@@ -89,7 +89,14 @@
             }
         </style>
         <div class="container-fluid">
-            {{ form_start(form) }}
+            {{ form_start(form, {
+                'action': path('admin_catering_order_create'),
+                'method': 'POST',
+                'attr': {
+                    'id': 'catering-order-form',
+                    'novalidate': 'novalidate'
+                }
+            }) }}
             <div class="form-group">
                 {{ form_label(form.user) }}
                 {{ form_widget(form.user, {'attr': {'class': 'form-control', 'id': 'catering-user-select'}}) }}
@@ -150,6 +157,12 @@
             <div class="alert alert-info">
                 <strong>Gesamtsumme:</strong> <span id="total-price">0,00 €</span>
             </div>
+            
+            {# Hidden submit button for programmatic submission #}
+            <div style="display:none">
+                <button type="submit" id="hidden-form-submit" class="btn btn-success">Bestellung erfassen</button>
+            </div>
+            
             {{ form_end(form) }}
         </div>
     {% endblock %}
@@ -157,7 +170,7 @@
     {% block modalFooter %}
         <button type="button" class="btn btn-sm btn-secondary" data-dismiss="modal">Abbrechen</button>
         
-        <button type="submit" form="{{ form.vars.id }}" class="btn btn-sm btn-success">
+        <button type="button" id="manual-submit-button" class="btn btn-sm btn-success">
             <i class="fas fa-plus"></i> Bestellung erfassen
         </button>
     {% endblock %}

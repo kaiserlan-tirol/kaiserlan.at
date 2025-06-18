@@ -9,7 +9,7 @@ use Doctrine\ORM\Mapping as ORM;
 use Ramsey\Uuid\UuidInterface;
 
 #[ORM\Entity(repositoryClass: CateringOrderRepository::class)]
-class CateringOrder
+class CateringOrder implements OrderInterface
 {
     #[ORM\Id]
     #[ORM\GeneratedValue]

@@ -152,43 +152,24 @@ class CateringService
         return $paidProducts;
     }
 
+    /**
+     * Create a new catering order for a user
+     * 
+     * @param User|UuidInterface $user The user who is ordering
+     * @return CateringOrder A new order instance
+     */
     public function allocOrder(User|UuidInterface $user): CateringOrder
     {
         $uuid = $user instanceof User ? $user->getUuid() : $user;
-        return (new CateringOrder())
-            ->setOrderer($uuid)
-            ->setCreatedAt(new DateTimeImmutable());
-    }
-
-    public function orderAddProduct(CateringOrder $order, CateringProduct $product, int $quantity): void
-    {
-        if ($quantity <= 0) {
-            return;
-        }
-
-        // Check if product already exists in order
-        foreach ($order->getCateringOrderPositions() as $position) {
-            if ($position->getProduct() && $position->getProduct()->getId() === $product->getId()) {
-                $position->setQuantity($position->getQuantity() + $quantity);
-                return;
-            }
-        }
-
-        // Get user to check for addon-based pricing
-        $user = $this->userRepo->findOneById($order->getOrderer());
-        $userAddons = $user ? $this->getUserAddons($user) : [];
         
-        // Create new position
-        $position = (new CateringOrderPosition())
-            ->fillWithProduct($product)
-            ->setQuantity($quantity);
+        // Special handling for guest user
+        $isGuest = $user instanceof User && $user->getUuid()->toString() === '00000000-0000-0000-0000-000000000000';
         
-        // Override price to 0 if product is included in user's addons
-        if ($product->isIncludedInAnyAddon($userAddons)) {
-            $position->setPrice(0);
-        }
+        $order = new CateringOrder();
+        $order->setOrderer($uuid);
+        $order->setCreatedAt(new DateTimeImmutable());
         
-        $order->addCateringOrderPosition($position);
+        return $order;
     }
 
     public function placeOrder(CateringOrder $order): void
@@ -244,7 +225,7 @@ class CateringService
         $valid_transfer = match ($order->getStatus()) {
             null => $status == CateringOrderStatus::Created,
             CateringOrderStatus::Created => $status == CateringOrderStatus::Paid || $status == CateringOrderStatus::Canceled,
-            CateringOrderStatus::Paid => $status == CateringOrderStatus::Refunded,
+            CateringOrderStatus::Paid => $status == CateringOrderStatus::Refunded || $status == CateringOrderStatus::Created, // Allow reverting to Created
             default => false,
         };
 
@@ -354,14 +335,8 @@ class CateringService
     {
         // For existing products, refresh from database to ensure we have the managed entity
         if ($product->getId()) {
-            error_log("Saving existing product ID: " . $product->getId());
-            error_log("Input product code: " . ($product->getProductCode() ?? 'NULL'));
-            error_log("Input addons count: " . $product->getIncludedInAddons()->count());
-            
             $managedProduct = $this->productRepository->find($product->getId());
             if ($managedProduct) {
-                error_log("Found managed product, updating...");
-                
                 // Update the managed entity with form data
                 $managedProduct->setName($product->getName());
                 $managedProduct->setDescription($product->getDescription());
@@ -370,20 +345,14 @@ class CateringService
                 $managedProduct->setProductCode($product->getProductCode());
                 $managedProduct->setSortIndex($product->getSortIndex());
                 
-                error_log("Updated managed product code: " . ($managedProduct->getProductCode() ?? 'NULL'));
-                
                 // Handle addon relationships - we need to carefully update the collection
                 // First, remove all current relationships that are not in the new collection
                 $currentAddons = $managedProduct->getIncludedInAddons()->toArray();
                 $newAddons = $product->getIncludedInAddons()->toArray();
                 
-                error_log("Current addons: " . count($currentAddons));
-                error_log("New addons: " . count($newAddons));
-                
                 // Remove addons that are no longer selected
                 foreach ($currentAddons as $currentAddon) {
                     if (!in_array($currentAddon, $newAddons, true)) {
-                        error_log("Removing addon: " . $currentAddon->getName());
                         $managedProduct->removeIncludedInAddon($currentAddon);
                     }
                 }
@@ -391,20 +360,16 @@ class CateringService
                 // Add new addons that weren't previously selected
                 foreach ($newAddons as $newAddon) {
                     if (!in_array($newAddon, $currentAddons, true)) {
-                        error_log("Adding addon: " . $newAddon->getName());
                         $managedProduct->addIncludedInAddon($newAddon);
                     }
                 }
                 
-                error_log("About to flush changes...");
                 $this->em->flush();
-                error_log("Flush completed");
                 return $managedProduct;
             }
         }
         
         // For new products, persist as usual
-        error_log("Saving new product");
         $this->em->persist($product);
         $this->em->flush();
         return $product;
@@ -501,5 +466,81 @@ class CateringService
     public function allocOrderPosition(): CateringOrderPosition
     {
         return new CateringOrderPosition();
+    }
+    
+    /**
+     * Add a product to a catering order
+     * 
+     * @param CateringOrder $order The order to add the product to
+     * @param CateringProduct $product The product to add
+     * @param int $quantity The quantity to add
+     * @return CateringOrderPosition The created order position
+     */
+    public function orderAddProduct(CateringOrder $order, CateringProduct $product, int $quantity): CateringOrderPosition
+    {
+        if ($quantity <= 0) {
+            return new CateringOrderPosition();
+        }
+
+        // Check if product already exists in order
+        foreach ($order->getCateringOrderPositions() as $position) {
+            if ($position->getProduct() && $position->getProduct()->getId() === $product->getId()) {
+                $position->setQuantity($position->getQuantity() + $quantity);
+                return $position;
+            }
+        }
+        
+        // Check if this is a guest user
+        $isGuest = $order->getOrderer()->toString() === '00000000-0000-0000-0000-000000000000';
+        $price = $product->getPrice();
+        
+        if (!$isGuest) {
+            // For regular users, check if they have a flatrate that includes this product
+            $user = $this->userRepo->findOneById($order->getOrderer());
+            $userAddons = $user ? $this->getUserAddons($user) : [];
+            
+            if ($product->isIncludedInAnyAddon($userAddons)) {
+                // Product is included in user's flatrate, set price to 0
+                $price = 0;
+            }
+        }
+        
+        // Create new position
+        $position = new CateringOrderPosition();
+        $position->setOrder($order);
+        $position->setPrice($price);
+        $position->setQuantity($quantity);
+        $position->setProductName($product->getName());
+        $position->setProductCode($product->getProductCode());
+        $position->setProduct($product);
+        
+        $order->addCateringOrderPosition($position);
+        
+        return $position;
+    }
+    
+    /**
+     * Persist an order to the database
+     * 
+     * @param CateringOrder $order The order to persist
+     * @return CateringOrder The persisted order
+     */
+    public function persistOrder(CateringOrder $order): CateringOrder
+    {
+        // Set initial state
+        if ($order->getStatus() === null) {
+            $this->setState($order, CateringOrderStatus::Created);
+        }
+        
+        // Persist the order and its positions
+        $this->em->persist($order);
+        
+        foreach ($order->getCateringOrderPositions() as $position) {
+            $this->em->persist($position);
+        }
+        
+        $this->em->flush();
+        
+        return $order;
     }
 }

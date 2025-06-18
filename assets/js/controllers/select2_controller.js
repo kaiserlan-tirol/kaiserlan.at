@@ -25,6 +25,11 @@ export default class extends Controller {
         const placeholder = this.placeholderValue || 'Suchen...';
         const url = this.remoteTargetValue;
 
+        // Check if this select should have a guest option
+        const hasGuestOption = $element.data('guest-option') === true;
+        const guestLabel = $element.data('guest-label') || 'Gast';
+        const guestValue = $element.data('guest-value') || 'guest';
+
         // endpoint
         let format = undefined;
         let result = this._processResult();
@@ -54,7 +59,8 @@ export default class extends Controller {
             processResults: result,
         };
 
-        $element.select2({
+        // Define base select2 options
+        const select2Options = {
             placeholder: placeholder,
             language: 'de',
             theme: 'bootstrap4',
@@ -65,7 +71,24 @@ export default class extends Controller {
             templateResult: format,
             ajax: ajax,
             width: '100%',
-        });
+        };
+
+        // Add the Gast option if required
+        if (hasGuestOption) {
+            // Reduce minimum input length to 0 to show guest option immediately
+            select2Options.minimumInputLength = 0;
+            
+            // Add the Gast option to the existing data list
+            const guestData = {
+                id: guestValue,
+                text: guestLabel
+            };
+            
+            // Add the data adapter to insert the guest option
+            select2Options.data = [guestData];
+        }
+
+        $element.select2(select2Options);
     }
 
     _processResult(text = "text", id = "uuid") {

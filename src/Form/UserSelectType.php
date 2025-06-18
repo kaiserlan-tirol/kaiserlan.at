@@ -38,6 +38,11 @@ class UserSelectType extends AbstractType
     public function buildView(FormView $view, FormInterface $form, array $options): void
     {
         $view->vars['remoteController'] = 'api_users';
+        
+        // Add the "Gast" option to the dropdown
+        $view->vars['attr']['data-guest-option'] = true;
+        $view->vars['attr']['data-guest-label'] = 'Gast';
+        $view->vars['attr']['data-guest-value'] = 'guest';
     }
 
     public function configureOptions(OptionsResolver $resolver): void
@@ -81,6 +86,16 @@ class UserSelectType extends AbstractType
     {
         if (empty($value)) {
             return null;
+        }
+        
+        // Special case for "guest" value
+        if ($value === 'guest' || $value === 'gast') {
+            // Create a temporary Guest user
+            $guestUser = new User();
+            $guestUser->setUuid(Uuid::fromString('00000000-0000-0000-0000-000000000000'));
+            $guestUser->setNickname('Gast');
+            $guestUser->setEmail('guest@example.com');
+            return $guestUser;
         }
 
         $value = $value instanceof UuidInterface ? $value : Uuid::fromString($value);
