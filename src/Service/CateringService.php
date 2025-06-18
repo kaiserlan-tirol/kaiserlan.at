@@ -56,6 +56,14 @@ class CateringService
     {
         return !$all ? $this->productRepository->findActive() : $this->productRepository->findAll();
     }
+    
+    /**
+     * Get a product by its product code
+     */
+    public function getProductByCode(string $productCode): ?CateringProduct
+    {
+        return $this->productRepository->findByProductCode($productCode);
+    }
 
     /**
      * Check if user has purchased and paid for addons that include catering products
