@@ -5,8 +5,10 @@ namespace App\Controller\API;
 use App\Entity\ShopOrderPosition;
 use App\Entity\ShopOrderPositionTicket;
 use App\Entity\CateringOrderStatus;
+use App\Entity\CateringProduct;
 use App\Idm\IdmManager;
 use App\Idm\IdmRepository;
+use App\Repository\CateringProductRepository;
 use App\Repository\ShopOrderPositionRepository;
 use App\Repository\ShopOrderRepository;
 use App\Entity\User;
@@ -24,6 +26,7 @@ class CateringApiController extends AbstractController
 {
     private readonly ShopOrderPositionRepository $orderPositionRepository;
     private readonly ShopOrderRepository $orderRepository;
+    private readonly CateringProductRepository $productRepository;
     private readonly ShopService $shopService;
     private readonly CateringService $cateringService;
     private readonly IdmRepository $userRepo;
@@ -31,12 +34,14 @@ class CateringApiController extends AbstractController
     public function __construct(
         ShopOrderPositionRepository $orderPositionRepository,
         ShopOrderRepository $orderRepository,
+        CateringProductRepository $productRepository,
         ShopService $shopService,
         CateringService $cateringService,
         IdmManager $idmManager
     ) {
         $this->orderPositionRepository = $orderPositionRepository;
         $this->orderRepository = $orderRepository;
+        $this->productRepository = $productRepository;
         $this->shopService = $shopService;
         $this->cateringService = $cateringService;
         $this->userRepo = $idmManager->getRepository(User::class);
@@ -186,5 +191,38 @@ class CateringApiController extends AbstractController
         } catch (\Exception $e) {
             return new JsonResponse(['error' => 'Failed to process order: ' . $e->getMessage()], Response::HTTP_INTERNAL_SERVER_ERROR);
         }
+    }
+    
+    /**
+     * Get all active products
+     * 
+     * @return JsonResponse List of all active products
+     */
+    #[Route(path: '/products', name: '_products', methods: ['GET'])]
+    public function getProducts(): JsonResponse
+    {
+        // Get all active products
+        $activeProducts = $this->productRepository->findActive();
+        
+        // Format products for the response
+        $formattedProducts = [];
+        foreach ($activeProducts as $product) {
+            $formattedProducts[] = [
+                'id' => $product->getId(),
+                'name' => $product->getName(),
+                'description' => $product->getDescription(),
+                'price' => $product->getPrice(),
+                'productCode' => $product->getProductCode(),
+                'sortIndex' => $product->getSortIndex(),
+                'includedInAddons' => array_map(function($addon) {
+                    return [
+                        'id' => $addon->getId(),
+                        'name' => $addon->getName()
+                    ];
+                }, $product->getIncludedInAddons()->toArray())
+            ];
+        }
+        
+        return new JsonResponse($formattedProducts);
     }
 }

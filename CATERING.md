@@ -3,11 +3,9 @@
 Catering ist so konzipiert, dass das Terminal auch mal offline sein kann und seine Orders dann abliefert wenn es wieder online ist. Am besten macht es das aber direkt.
 
 
-
-
 ## Benutzer mit Addons
 
-Liefert alle Benutzer mit einem Ticket (also aktuelle Lanbesucher) inklusive der gebuchten Addons. D.h. so kann man die Preise auf 0 setzen oder eben nicht, abhängig ob er Toastflat hat.
+Liefert alle Benutzer mit einem Ticket (also aktuelle Lanbesucher) inklusive der gebuchten Addons. D.h. so kann man die Preise auf 0 setzen oder eben nicht, abhängig ob er Toastflat hat (selbe addons wie "includedInAddons").
 
 http://localhost:8002/api/catering/users-with-tickets
 
@@ -34,7 +32,7 @@ Example:
 ]
 ```
 
-# Create Order
+## Create Order
 
 Bezahlt status ist automatisch auf nicht bezahlt, außer man setzt `"paid": true,` oder wenn die Gesamtsumme 0€ ist (wenn er eine Flat hat). 
 
@@ -53,4 +51,44 @@ curl -X POST http://localhost:8002/api/catering/order \
       }
     ]
   }' | jq .
+```
+
+## Products
+
+Liefert alle aktiven Produkte mit allen Informationen.
+
+http://localhost:8002/api/catering/products
+
+Example:
+```json
+[
+  {
+    "id": 1,
+    "name": "Schinken-Käse-Toast",
+    "description": "Ein Toast mit zwei Toastscheiben, Schinken und Käse. Inkl Saucen :-)",
+    "price": 250,
+    "productCode": "SKT",
+    "sortIndex": 1,
+    "includedInAddons": [
+      {
+        "id": 1,
+        "name": "Toastflat"
+      }
+    ]
+  },
+  {
+    "id": 2,
+    "name": "Frankfurter Würstl",
+    "description": "Ein Paar Frankfurter mit Semmel",
+    "price": 300,
+    "productCode": "WUERSTL",
+    "sortIndex": 2,
+    "includedInAddons": [
+      {
+        "id": 1,
+        "name": "Toastflat"
+      }
+    ]
+  }
+]
 ```
