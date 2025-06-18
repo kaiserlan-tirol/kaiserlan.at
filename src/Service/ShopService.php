@@ -9,6 +9,7 @@ use App\Entity\ShopOrderHistoryAction;
 use App\Entity\ShopOrderPositionAddon;
 use App\Entity\ShopOrderPositionTicket;
 use App\Entity\ShopOrderStatus;
+use App\Entity\Ticket;
 use App\Entity\User;
 use App\Exception\OrderLifecycleException;
 use App\Helper\EmailRecipient;

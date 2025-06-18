@@ -43,6 +43,25 @@ class ShopOrderPositionRepository extends ServiceEntityRepository
     }
 
     /**
+     * Find all redeemed tickets
+     * 
+     * @return ShopOrderPositionTicket[] Array of shop order positions with redeemed tickets
+     */
+    public function findRedeemedTickets(): array
+    {
+        return $this->getEntityManager()->createQueryBuilder()
+            ->select('opt')
+            ->from(ShopOrderPositionTicket::class, 'opt')
+            ->join('opt.order', 'o')
+            ->join('opt.ticket', 't')
+            ->where('t.redeemer IS NOT NULL')
+            ->andWhere('o.status = :status')
+            ->setParameter('status', ShopOrderStatus::Paid)
+            ->getQuery()
+            ->getResult();
+    }
+
+    /**
      * @param UuidInterface|null $uuid
      * @param ShopOrderStatus[] $statusFilter
      * @return array [array_id => cnt]

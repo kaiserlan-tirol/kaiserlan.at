@@ -84,6 +84,11 @@ class UserExtension extends AbstractExtension
 
     public function getUserName($userId): string
     {
+        // Handle both User objects and UUID strings
+        if ($userId instanceof User) {
+            return $userId->getNickname() ?? '';
+        }
+        
         $user = $this->getUser($userId);
 
         if (empty($user)) {
