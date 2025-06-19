@@ -26,6 +26,14 @@ an:
     <p style="outline: 0px; user-select: none;"><strong>Zahlung per &Uuml;berweisung</strong></p>
     <p style="outline: 0px; user-select: none;">Empf&auml;nger: Markus Edenhauser<br />Neues Vereinskonto bei Revolut. Litauen, LT stimmt ;-)<br />IBAN: LT86 3250 0187 3587 6769<br />BIC: REVOLT21<br />Verwendungszweck: Dein Benutzer-/Gamertag</p>
     <p style="outline: 0px; user-select: none;">&nbsp;</p>
+    <p style="outline: 0px; user-select: none;">Banking QR-Code:<br />
+    <img 
+        src="data:image/png;base64,{{ qr_code_data_uri('BCD\n001\n1\nSCT\nREVOLT21\nEdenhauser KaiserLAN\nLT863250018735876769\nEUR' ~ (order.calculateTotal() / 100) ~ '\n\nOrder ' ~ order.id ~ ', Eintritt')|replace({'data:image/png;base64,': ''}) }}" 
+        alt="QR-Code für Überweisung" 
+        title="Scan mit Banking-App für einfache Überweisung"
+    />
+    </p>
+    <p style="outline: 0px; user-select: none;">&nbsp;</p>
 </div>
 {% endif %}
 {% elseif showPaymentSuccess | default(false) %}
