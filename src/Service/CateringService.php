@@ -320,6 +320,18 @@ class CateringService
         return $this->orderRepository->queryOrders($uuid, $status);
     }
 
+    /**
+     * Find all orders for a specific user
+     * 
+     * @param User|UuidInterface $user The user or user UUID
+     * @return CateringOrder[] Array of catering orders
+     */
+    public function findOrdersByUser(User|UuidInterface $user): array
+    {
+        $uuid = $user instanceof User ? $user->getUuid() : $user;
+        return $this->orderRepository->queryOrders($uuid);
+    }
+
     public function deleteOrder(CateringOrder $order): void
     {
         if (!$order->getStatus()->isDead()) {

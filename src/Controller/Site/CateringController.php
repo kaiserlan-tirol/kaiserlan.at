@@ -34,6 +34,7 @@ class CateringController extends AbstractController
     }
 
     private const CSRF_TOKEN_CANCEL = 'cancelCateringOrder';
+    private const CSRF_TOKEN_PAY = 'payCateringOrders';
 
     #[Route(path: '/order', name: '_order')]
     public function order(Request $request): Response
@@ -114,23 +115,33 @@ class CateringController extends AbstractController
             $order = array_pop($order);
             try {
                 switch ($action) {
-                    case 'cancel':
-                        $this->cateringService->cancelOrder($order);
-                        break;
                     default:
                         $this->addFlash('error', "Invalid action specified.");
                         return $this->redirectToRoute('catering_orders');
                 }
-                $this->addFlash('success', "Bestellung #{$order->getId()} wurde storniert.");
+                // Success message would go here
             } catch (OrderLifecycleException $e) {
                 $this->addFlash('error', "Bestellung #{$order->getId()} konnte nicht geändert werden.");
             }
         }
 
-        // show orders with option to cancel
+        // Calculate total sum of open orders
+        $totalOpenOrders = 0;
+        $hasOpenOrders = false;
+        foreach ($orders as $order) {
+            if ($order->isOpen()) {
+                $totalOpenOrders += $order->calculateTotal();
+                $hasOpenOrders = true;
+            }
+        }
+        
+        // show orders with option to pay
         return $this->render('site/catering/orders.html.twig', [
             'orders' => $orders,
             'csrf_token_cancel' => self::CSRF_TOKEN_CANCEL,
+            'csrf_token_pay' => self::CSRF_TOKEN_PAY,
+            'total_open_orders' => $totalOpenOrders,
+            'has_open_orders' => $hasOpenOrders,
         ]);
     }
 
@@ -150,5 +161,57 @@ class CateringController extends AbstractController
             'paidProducts' => $paidProducts,
             'userHasFlatrate' => $this->cateringService->userHasFlatrate($user),
         ]);
+    }
+
+    #[Route(path: '/pay', name: '_pay', methods: ['POST'])]
+    public function pay(Request $request): Response
+    {
+        $token = $request->request->get('_token');
+        if (!$this->isCsrfTokenValid(self::CSRF_TOKEN_PAY, $token)) {
+            throw $this->createAccessDeniedException('Invalid CSRF token presented');
+        }
+        
+        /** @var User $user */
+        $user = $this->getUser()->getUser();
+        $orders = $this->cateringService->getOrderByUser($user);
+        
+        // Only process open orders
+        $openOrders = array_filter($orders, function(CateringOrder $order) {
+            return $order->isOpen();
+        });
+        
+        if (count($openOrders) === 0) {
+            $this->addFlash('info', "Keine offenen Bestellungen vorhanden.");
+            return $this->redirectToRoute('catering_orders');
+        }
+        
+        // Calculate total amount
+        $totalAmount = 0;
+        foreach ($openOrders as $order) {
+            $totalAmount += $order->calculateTotal();
+        }
+        
+        // Mark all open orders as paid
+        try {
+            foreach ($openOrders as $order) {
+                $this->cateringService->setOrderPaid($order);
+                $this->logger->info('Order marked as paid', [
+                    'order_id' => $order->getId(),
+                    'user_id' => $user->getUuid()->toString(),
+                    'amount' => $order->calculateTotal(),
+                ]);
+            }
+            
+            $formattedAmount = number_format($totalAmount / 100, 2, ',', '.') . ' €';
+            $this->addFlash('success', count($openOrders) . " Bestellung(en) im Wert von {$formattedAmount} wurden als bezahlt markiert.");
+        } catch (\Exception $e) {
+            $this->logger->error('Error marking orders as paid', [
+                'error' => $e->getMessage(),
+                'user_id' => $user->getUuid()->toString(),
+            ]);
+            $this->addFlash('error', "Fehler beim Bezahlen der Bestellungen: " . $e->getMessage());
+        }
+        
+        return $this->redirectToRoute('catering_orders');
     }
 }
