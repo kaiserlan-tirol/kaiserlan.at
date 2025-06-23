@@ -8,6 +8,7 @@ enum CateringOrderHistoryAction : string
     case PaymentSuccessful = 'Bezahlung erfolgreich';
     case PaymentFailed = 'Bezahlung fehlgeschlagen';
     case PaymentNotice = 'Zahlungshinweis';
+    case PaymentSent = 'Zahlung gesendet';
     case OrderRefunded = 'Bestellung rückerstattet';
     case OrderCanceled = 'Bestellung storniert';
     case OrderFulfilled = 'Bestellung abgeschlossen';

@@ -1,0 +1,269 @@
+{% extends 'admin/adminBase.html.twig' %}
+
+{% block title %}Catering Guthabenverwaltung{% endblock %}
+
+{% block main %}
+<div class="container-fluid">
+    <div class="row mb-3">
+        <div class="col-12">
+            <h1>Catering Guthabenverwaltung</h1>
+            <p class="lead">Hier können Sie die Guthaben aller Benutzer verwalten.</p>
+        </div>
+    </div>
+    
+    <div class="row mb-3">
+        <div class="col-md-6">
+            <div class="input-group">
+                <input type="text" id="userSearchInput" class="form-control" placeholder="Suche nach Benutzernamen oder E-Mail...">
+                <div class="input-group-append">
+                    <span class="input-group-text"><i class="fas fa-search"></i></span>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row">
+        <div class="col-12 mb-4">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Benutzer Finanzen</h5>
+                    <div>
+                        <a href="{{ path('admin_catering_payments') }}" class="btn btn-info me-2">
+                            <i class="fas fa-money-bill"></i> Zahlungsverwaltung
+                        </a>
+                        <button type="button" id="addUserCreditBtn" class="btn btn-success" data-toggle="modal" data-target="#addUserCreditModal">
+                            <i class="fas fa-plus-circle"></i> Guthaben für anderen Benutzer hinzufügen
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-striped mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Benutzer</th>
+                                    <th>Aktuelles Guthaben</th>
+                                    <th>Aktionen</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% if users_with_credit|length > 0 %}
+                                    {% for user_data in users_with_credit %}
+                                        <tr>
+                                            <td>
+                                                {{ user_data.user.nickname }}
+                                                <small class="text-muted d-block">{{ user_data.user.email }}</small>
+                                            </td>
+                                            <td>
+                                                {% if user_data.credit > 0 %}
+                                                    <span class="font-weight-bold">{{ (user_data.credit/100) | format_currency('EUR') }}</span>
+                                                {% else %}
+                                                    {{ (user_data.credit/100) | format_currency('EUR') }}
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                <a href="{{ path('admin_catering_financial', {'userId': user_data.user.uuid}) }}" class="btn btn-sm btn-primary-outline">
+                                                    <i class="fas fa-edit"></i> Verwaltung
+                                                </a>
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                {% else %}
+                                    <tr>
+                                        <td colspan="3" class="text-center py-3">
+                                            Keine Benutzer gefunden.
+                                        </td>
+                                    </tr>
+                                {% endif %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Über die Guthabenverwaltung</h5>
+                </div>
+                <div class="card-body">
+                    <h6 class="font-weight-bold">So funktioniert das Guthabensystem:</h6>
+                    <ol>
+                        <li>Benutzer können Guthaben haben, das automatisch für neue Bestellungen verwendet wird</li>
+                        <li>Überschüssige Zahlungen werden automatisch als Guthaben gespeichert</li>
+                        <li>Admins können das Guthaben manuell anpassen (erhöhen oder verringern)</li>
+                        <li>Beim Anpassen des Guthabens wird eine Transaktion in der Historie gespeichert</li>
+                        <li>Benutzer können ihr Guthaben und ihre Transaktionshistorie einsehen</li>
+                    </ol>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal for adding credit to a user not in the list -->
+<div class="modal fade" id="addUserCreditModal" tabindex="-1" aria-labelledby="addUserCreditModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addUserCreditModalLabel">Guthaben für Benutzer hinzufügen</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="userSearchForm">
+                    <div class="input-group mb-3">
+                        <input type="text" id="modalUserSearchInput" name="q" class="form-control" placeholder="Suchen Sie nach E-Mail, Name oder Nickname..." required minlength="2" autocomplete="off">
+                        <button class="btn btn-primary" type="submit">
+                            <i class="fas fa-search"></i> Suchen
+                        </button>
+                    </div>
+                    <small class="form-text text-muted">Geben Sie mindestens 2 Zeichen ein, um die Suche zu starten.</small>
+                </form>
+                
+                <div id="userSearchResults" class="mt-3">
+                    <!-- Search results will appear here -->
+                </div>
+                
+                <style>
+                    /* Custom styles for search results */
+                    #userSearchResults .list-group-item {
+                        transition: background-color 0.2s ease;
+                    }
+                    #userSearchResults .list-group-item:hover {
+                        background-color: #f5f5f5;
+                    }
+                    #userSearchResults .list-group-item h5 {
+                        font-size: 1.1rem;
+                        margin-bottom: 0.25rem;
+                    }
+                </style>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Schließen</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize Bootstrap modal functionality
+    const addUserCreditModal = document.getElementById('addUserCreditModal');
+    
+    // Handle modal reset when closed (Bootstrap 4 events using native JS)
+    addUserCreditModal.addEventListener('hidden.bs.modal', function () {
+        document.getElementById('modalUserSearchInput').value = '';
+        document.getElementById('userSearchResults').innerHTML = '';
+    });
+    
+    // Focus input when modal opens (Bootstrap 4 events using native JS)
+    addUserCreditModal.addEventListener('shown.bs.modal', function () {
+        document.getElementById('modalUserSearchInput').focus();
+    });
+    
+    // Make sure button works properly with Bootstrap 4 - using data attributes
+    // The button has data-toggle="modal" data-target="#addUserCreditModal" attributes
+    // so Bootstrap 4 will handle the modal opening automatically
+    
+    const addUserCreditBtn = document.getElementById('addUserCreditBtn');
+    if (addUserCreditBtn) {
+        // Make sure the button has the correct Bootstrap 4 attributes
+        if (!addUserCreditBtn.getAttribute('data-toggle')) {
+            addUserCreditBtn.setAttribute('data-toggle', 'modal');
+            addUserCreditBtn.setAttribute('data-target', '#addUserCreditModal');
+        }
+    }
+    
+    // Table search functionality
+    const searchInput = document.getElementById('userSearchInput');
+    if (searchInput) {
+        searchInput.addEventListener('keyup', function() {
+            const query = searchInput.value.toLowerCase();
+            const rows = document.querySelectorAll('tbody tr');
+            
+            rows.forEach(row => {
+                const userName = row.querySelector('td:first-child').textContent.toLowerCase();
+                if (userName.includes(query)) {
+                    row.style.display = '';
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+        });
+    }
+    
+    // User search form in modal
+    const userSearchForm = document.getElementById('userSearchForm');
+    const userSearchResults = document.getElementById('userSearchResults');
+    
+    // Function to handle user search
+    function searchUsers(query) {
+        if (!query || query.length < 2) {
+            userSearchResults.innerHTML = '<div class="alert alert-info">Bitte geben Sie mindestens 2 Zeichen ein.</div>';
+            return;
+        }
+        
+        userSearchResults.innerHTML = '<div class="text-center"><div class="spinner-border" role="status"></div></div>';
+        
+        // Make AJAX request to search for users
+        fetch('/admin/catering/search-users?q=' + encodeURIComponent(query))
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Netzwerkfehler: ' + response.status);
+                }
+                return response.json();
+            })
+            .then(data => {
+                let html = '';
+                if (data.length > 0) {
+                    html = '<div class="list-group">';
+                    data.forEach(user => {
+                        html += `<a href="/admin/catering/financial/${user.uuid}" class="list-group-item list-group-item-action">
+                                    <div class="d-flex w-100 justify-content-between">
+                                        <h5 class="mb-1">${user.nickname}</h5>
+                                    </div>
+                                    <p class="mb-1">${user.email}</p>
+                                </a>`;
+                    });
+                    html += '</div>';
+                } else {
+                    html = '<div class="alert alert-warning">Kein Benutzer gefunden.</div>';
+                }
+                userSearchResults.innerHTML = html;
+            })
+            .catch(error => {
+                userSearchResults.innerHTML = '<div class="alert alert-danger">Fehler bei der Suche: ' + error.message + '</div>';
+            });
+    }
+    
+    // Handle form submission
+    userSearchForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        const query = document.getElementById('modalUserSearchInput').value;
+        searchUsers(query);
+    });
+    
+    // Search as you type (debounced)
+    const modalUserSearchInput = document.getElementById('modalUserSearchInput');
+    let searchTimeout;
+    
+    modalUserSearchInput.addEventListener('input', function() {
+        clearTimeout(searchTimeout);
+        const query = this.value;
+        
+        searchTimeout = setTimeout(() => {
+            if (query.length >= 2) {
+                searchUsers(query);
+            } else if (query.length === 0) {
+                userSearchResults.innerHTML = '';
+            }
+        }, 300); // 300ms debounce
+    });
+});
+</script>
+{% endblock %}

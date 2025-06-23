@@ -1,0 +1,139 @@
+{% extends 'site/siteBase.html.twig' %}
+
+{% block title %}Mein Catering Guthaben{% endblock %}
+
+{% block main %}
+<div class="container">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h1>Mein Catering Guthaben</h1>
+                </div>
+                <div>
+                    <a href="{{ path('catering_orders') }}" class="btn btn-secondary">
+                        <i class="fas fa-arrow-left"></i> Zurück zu Bestellungen
+                    </a>
+                </div>
+            </div>
+            
+            <div class="row mb-4">
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header bg-primary text-white">
+                            <h5 class="mb-0">Aktueller Guthabenstand</h5>
+                        </div>
+                        <div class="card-body">
+                            <h2 class="display-4 text-center">
+                                {{ (credit_balance/100) | format_currency('EUR') }}
+                            </h2>
+                            <p class="text-muted text-center">
+                                Stand: {{ "now"|date('d.m.Y H:i') }}
+                            </p>
+                            
+                            <hr>
+                            
+                            <h6>Was kann ich mit meinem Guthaben machen?</h6>
+                            <ul>
+                                <li>Das Guthaben wird automatisch für neue Bestellungen verwendet</li>
+                                <li>Bei Einzahlungen wird der Überschuss als Guthaben verbucht</li>
+                                <li>Guthaben verfällt nicht und kann für künftige Bestellungen genutzt werden</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header bg-info text-white">
+                            <h5 class="mb-0">Zahlungsinformationen</h5>
+                        </div>
+                        <div class="card-body">
+                            <h6>Bezahlen per PayPal</h6>
+                            <p>Du kannst jederzeit Geld auf dein Konto einzahlen:</p>
+                            <a href="https://paypal.me/kaiserlantirol" target="_blank" class="btn btn-primary mb-3" style="background-color: #0070ba; border-color: #0070ba;">
+                                <i class="fab fa-paypal"></i> Mit PayPal einzahlen
+                            </a>
+                            <p class="mb-2">
+                                <strong>Nachricht:</strong> {{ app.user.user.nickname }}, Catering
+                            </p>
+                            
+                            <hr>
+                            
+                            <div class="row">
+                                <div class="col-8">
+                              <h6>Bezahlen per Überweisung</h6>
+                              <p class="mb-2"><strong>IBAN:</strong> LT863250018735876769</p>
+                              <p class="mb-2"><strong>BIC:</strong> REVOLT21</p>
+                              <p class="mb-2">
+                                  <strong>Verwendungszweck:</strong> {{ app.user.user.nickname }}, Catering
+                              </p>
+                                </div>
+                                <div class="col-4 text-right">
+                                    <img 
+                                            src="data:image/png;base64,{{ qr_code_data_uri('BCD\n001\n1\nSCT\nREVOLT21\nKaiserLAN Edenhauser\nLT863250018735876769\nEUR0\n\n' ~ app.user.user.nickname ~ ', Catering')|replace({'data:image/png;base64,': ''}) }}" 
+                                            alt="QR-Code für Überweisung" 
+                                            class="img-fluid"
+                                            title="Scan mit Banking-App für einfache Überweisung"
+                                        />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Transaktionshistorie</h5>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-striped mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Datum</th>
+                                    <th>Beschreibung</th>
+                                    <th>Betrag</th>
+                                    <th>Typ</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% if transactions|length > 0 %}
+                                    {% for transaction in transactions %}
+                                        <tr>
+                                            <td>{{ transaction.timestamp|date('d.m.Y H:i') }}</td>
+                                            <td>
+                                                {{ transaction.description }}
+                                                {% if transaction.order %}
+                                                    <small class="text-muted">(Bestellung #{{ transaction.order.id }})</small>
+                                                {% endif %}
+                                            </td>
+                                            <td class="{% if transaction.amount >= 0 %}text-success{% else %}text-danger{% endif %}">
+                                                {{ (transaction.amount/100) | format_currency('EUR') }}
+                                            </td>
+                                            <td>
+                                                {% if transaction.type == 'payment_received' %}
+                                                    <span class="badge badge-success">Einzahlung</span>
+                                                {% elseif transaction.type == 'order_payment' %}
+                                                    <span class="badge badge-primary">Bestellung</span>
+                                                {% elseif transaction.type == 'credit_adjustment' %}
+                                                    <span class="badge badge-info">Anpassung</span>
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                {% else %}
+                                    <tr>
+                                        <td colspan="4" class="text-center py-3">Keine Transaktionen vorhanden.</td>
+                                    </tr>
+                                {% endif %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

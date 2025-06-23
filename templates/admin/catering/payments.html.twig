@@ -1,0 +1,92 @@
+{% extends 'admin/adminBase.html.twig' %}
+
+{% block title %}Catering Zahlungsverwaltung{% endblock %}
+
+{% block main %}
+<div class="container-fluid">
+    <div class="row mb-3">
+        <div class="col-12">
+            <h1>Catering Zahlungsverwaltung</h1>
+            <p class="lead">Hier können Sie die Zahlungen von Benutzern verwalten, die als "Zahlung gesendet" markiert sind.</p>
+        </div>
+    </div>
+    
+    <div class="row">
+        <div class="col-12 mb-4">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Offene Zahlungen</h5>
+                    <div>
+                        <a href="{{ path('admin_catering_credit_management') }}" class="btn btn-info">
+                            <i class="fas fa-wallet"></i> Guthabenverwaltung
+                        </a>
+                    </div>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-striped mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Benutzer</th>
+                                    <th>Anzahl Bestellungen</th>
+                                    <th>Gesamtbetrag</th>
+                                    <th>Aktionen</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% if users_with_pending_payments|length > 0 %}
+                                    {% for user_data in users_with_pending_payments %}
+                                        <tr>
+                                            <td>
+                                                {{ user_data.user.nickname }}
+                                                <small class="text-muted d-block">{{ user_data.user.email }}</small>
+                                            </td>
+                                            <td>
+                                                {{ user_data.orders|length }}
+                                            </td>
+                                            <td>
+                                                {{ (user_data.total/100) | format_currency('EUR') }}
+                                            </td>
+                                            <td>
+                                                <a href="{{ path('admin_catering_financial', {'userId': user_data.user.uuid}) }}" class="btn btn-sm btn-primary">
+                                                    <i class="fas fa-money-bill"></i> Finanzverwaltung
+                                                </a>
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                {% else %}
+                                    <tr>
+                                        <td colspan="4" class="text-center py-3">
+                                            <i class="far fa-check-circle text-success mr-2"></i>
+                                            Keine offenen Zahlungen vorhanden.
+                                        </td>
+                                    </tr>
+                                {% endif %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Zahlungsabwicklung</h5>
+                </div>
+                <div class="card-body">
+                    <h6 class="font-weight-bold">Ablauf der Zahlungsverarbeitung:</h6>
+                    <ol>
+                        <li>Benutzer markieren ihre Bestellungen als "Zahlung gesendet"</li>
+                        <li>Nachdem Sie die Zahlung erhalten haben, können Sie hier die Zahlung verarbeiten</li>
+                        <li>Überschüssige Zahlungen werden automatisch als Guthaben für den Benutzer angelegt</li>
+                        <li>Falls die Zahlung nicht ausreicht, bleiben die restlichen Bestellungen im Status "Zahlung gesendet"</li>
+                    </ol>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

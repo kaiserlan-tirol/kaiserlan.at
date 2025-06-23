@@ -1,0 +1,126 @@
+{% extends 'admin/adminBase.html.twig' %}
+
+{% block title %}Guthaben anpassen - {{ user.nickname }}{% endblock %}
+
+{% block main %}
+<div class="container-fluid">
+    <div class="row mb-3">
+        <div class="col-12">
+            <h1>Guthaben anpassen</h1>
+            <p class="lead">
+                Benutzer: <strong>{{ user.nickname }}</strong> 
+                <small class="text-muted">({{ user.email }})</small>
+            </p>
+        </div>
+    </div>
+    
+    <div class="row">
+        <div class="col-md-5">
+            <div class="card mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">Guthaben anpassen</h5>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info">
+                        <p class="mb-0"><strong>Aktuelles Guthaben:</strong> {{ (current_credit/100) | format_currency('EUR') }}</p>
+                    </div>
+                    
+                    <form action="{{ path('admin_catering_adjust_credit', {'userId': user.uuid}) }}" method="post">
+                        <input type="hidden" name="_token" value="{{ csrf_token(csrf_token) }}">
+                        
+                        <div class="form-group">
+                            <label for="adjustment_amount">Anpassungsbetrag (€):</label>
+                            <div class="input-group">
+                                <div class="input-group-prepend">
+                                    <span class="input-group-text"><i class="fas fa-euro-sign"></i></span>
+                                </div>
+                                <input type="number" id="adjustment_amount" name="adjustment_amount" class="form-control" step="0.01" value="0.00" required>
+                            </div>
+                            <small class="form-text text-muted">
+                                Geben Sie einen positiven Wert ein, um Guthaben hinzuzufügen, oder einen negativen Wert, um Guthaben abzuziehen.
+                            </small>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="adjustment_note">Notiz:</label>
+                            <textarea id="adjustment_note" name="adjustment_note" class="form-control" rows="3" 
+                                      placeholder="Grund für die Guthabenanpassung..."></textarea>
+                        </div>
+                        
+                        <div class="form-check mb-3">
+                            <input type="checkbox" class="form-check-input" id="apply_to_orders" name="apply_to_orders" value="1" checked="checked">
+                            <label class="form-check-label" for="apply_to_orders">Nach der Anpassung automatisch auf offene Bestellungen anwenden</label>
+                            <small class="form-text text-muted">
+                                Wenn aktiviert, wird das verfügbare Guthaben nach der Anpassung automatisch für offene Bestellungen verwendet.
+                            </small>
+                        </div>
+                        
+                        <div class="form-group">
+                            <button type="submit" class="btn btn-success btn-block">
+                                <i class="fas fa-check-circle"></i> Guthaben anpassen
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-7">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Transaktionshistorie</h5>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-striped mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Datum</th>
+                                    <th>Beschreibung</th>
+                                    <th>Betrag</th>
+                                    <th>Typ</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% if transactions|length > 0 %}
+                                    {% for transaction in transactions %}
+                                        <tr>
+                                            <td>{{ transaction.timestamp|date('d.m.Y H:i') }}</td>
+                                            <td>
+                                                {{ transaction.description }}
+                                                {% if transaction.order %}
+                                                    <a href="{{ path('admin_catering_show', {'id': transaction.order.id}) }}" class="ml-1" target="_blank">
+                                                        <small>(Bestellung #{{ transaction.order.id }})</small>
+                                                    </a>
+                                                {% endif %}
+                                            </td>
+                                            <td class="{% if transaction.amount >= 0 %}text-success{% else %}text-danger{% endif %}">
+                                                {{ (transaction.amount/100) | format_currency('EUR') }}
+                                            </td>
+                                            <td>
+                                                {% if transaction.type == 'payment_received' %}
+                                                    <span class="badge badge-success">Einzahlung</span>
+                                                {% elseif transaction.type == 'order_payment' %}
+                                                    <span class="badge badge-primary">Bestellung</span>
+                                                {% elseif transaction.type == 'credit_adjustment' %}
+                                                    <span class="badge badge-info">Anpassung</span>
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                {% else %}
+                                    <tr>
+                                        <td colspan="4" class="text-center py-3">
+                                            Keine Transaktionen vorhanden.
+                                        </td>
+                                    </tr>
+                                {% endif %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

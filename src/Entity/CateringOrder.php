@@ -103,6 +103,11 @@ class CateringOrder implements OrderInterface
     {
         return $this->status->isOpen();
     }
+    
+    public function isPaymentSent(): bool
+    {
+        return $this->status->isPaymentSent();
+    }
 
     /**
      * @return Collection<int, CateringOrderPosition>

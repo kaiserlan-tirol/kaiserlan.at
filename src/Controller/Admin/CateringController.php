@@ -19,6 +19,7 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
 use Symfony\Component\Serializer\SerializerInterface;
+use Doctrine\ORM\EntityManagerInterface;
 use Psr\Log\LoggerInterface;
 
 #[IsGranted('ROLE_ADMIN_PAYMENT')]
@@ -29,6 +30,7 @@ class CateringController extends AbstractController {
     private readonly SerializerInterface $serializer;
     private readonly IdmRepository $userRepo;
     private readonly LoggerInterface $logger;
+    private readonly EntityManagerInterface $em;
 
     private const CSRF_TOKEN_PAYED = 'cateringToken';
 
@@ -37,12 +39,14 @@ class CateringController extends AbstractController {
         CateringOrderRepository $orderRepository, 
         SerializerInterface $serializer, 
         IdmManager $idmManager,
+        EntityManagerInterface $em,
         LoggerInterface $logger
     ) {
         $this->cateringService = $cateringService;
         $this->orderRepository = $orderRepository;
         $this->serializer = $serializer;
         $this->userRepo = $idmManager->getRepository(User::class);
+        $this->em = $em;
         $this->logger = $logger;
     }
 
@@ -427,6 +431,350 @@ class CateringController extends AbstractController {
         }
     }
 
+    #[Route(path: '/payments', name:'_payments', methods: ['GET'])]
+    public function paymentsList(): Response
+    {
+        // Get all users with payment sent orders
+        $paymentSentOrders = $this->orderRepository->findBy([
+            'status' => \App\Entity\CateringOrderStatus::PaymentSent
+        ], ['createdAt' => 'DESC']);
+        
+        // Group orders by user
+        $ordersByUser = [];
+        foreach ($paymentSentOrders as $order) {
+            $userId = $order->getOrderer()->toString();
+            if (!isset($ordersByUser[$userId])) {
+                $user = $this->userRepo->findOneById($order->getOrderer());
+                $ordersByUser[$userId] = [
+                    'user' => $user,
+                    'orders' => [],
+                    'total' => 0
+                ];
+            }
+            $ordersByUser[$userId]['orders'][] = $order;
+            $ordersByUser[$userId]['total'] += $order->calculateTotal();
+        }
+        
+        return $this->render('admin/catering/payments.html.twig', [
+            'users_with_pending_payments' => $ordersByUser,
+        ]);
+    }
+    
+    #[Route(path: '/process-payment/{userId}', name:'_process_payment', methods: ['GET', 'POST'])]
+    public function processPayment(Request $request, string $userId): Response
+    {
+        $user = $this->userRepo->findOneById(Uuid::fromString($userId));
+        
+        if (!$user) {
+            $this->addFlash('error', 'Benutzer nicht gefunden.');
+            return $this->redirectToRoute('admin_catering_payments');
+        }
+        
+        // Get user's payment sent orders
+        $paymentSentOrders = $this->orderRepository->findBy([
+            'orderer' => $user->getUuid(),
+            'status' => \App\Entity\CateringOrderStatus::PaymentSent
+        ], ['createdAt' => 'ASC']);
+        
+        // Also get any open orders
+        $openOrders = $this->orderRepository->findBy([
+            'orderer' => $user->getUuid(),
+            'status' => \App\Entity\CateringOrderStatus::Created
+        ], ['createdAt' => 'ASC']);
+        
+        // Calculate totals
+        $totalPaymentSent = 0;
+        foreach ($paymentSentOrders as $order) {
+            $totalPaymentSent += $order->calculateTotal();
+        }
+        
+        $totalOpenOrders = 0;
+        foreach ($openOrders as $order) {
+            $totalOpenOrders += $order->calculateTotal();
+        }
+        
+        // Get current credit balance
+        $currentCredit = $this->cateringService->getUserCredit($user);
+        
+        if ($request->isMethod('POST')) {
+            $token = $request->request->get('_token');
+            if (!$this->isCsrfTokenValid(self::CSRF_TOKEN_PAYED, $token)) {
+                throw $this->createAccessDeniedException('Invalid CSRF token presented');
+            }
+            
+            $amount = (int)($request->request->get('payment_amount') * 100); // Convert to cents
+            $note = $request->request->get('payment_note');
+            
+            if ($amount <= 0) {
+                $this->addFlash('error', 'Der Zahlungsbetrag muss größer als 0 sein.');
+                return $this->redirectToRoute('admin_catering_process_payment', ['userId' => $userId]);
+            }
+            
+            try {
+                // Process payment
+                $result = $this->cateringService->processPayment($user, $amount, $note);
+                
+                $this->addFlash('success', sprintf(
+                    'Zahlung über %.2f € wurde verarbeitet. %d Bestellung(en) wurden bezahlt und %.2f € wurden dem Guthaben gutgeschrieben.',
+                    $amount / 100,
+                    $result['orders_processed'],
+                    $result['amount_credited'] / 100
+                ));
+                
+                return $this->redirectToRoute('admin_catering_payments');
+            } catch (\Exception $e) {
+                $this->addFlash('error', 'Fehler bei der Verarbeitung der Zahlung: ' . $e->getMessage());
+            }
+        }
+        
+        return $this->render('admin/catering/process_payment.html.twig', [
+            'user' => $user,
+            'payment_sent_orders' => $paymentSentOrders,
+            'open_orders' => $openOrders,
+            'total_payment_sent' => $totalPaymentSent,
+            'total_open_orders' => $totalOpenOrders,
+            'current_credit' => $currentCredit,
+            'csrf_token' => self::CSRF_TOKEN_PAYED
+        ]);
+    }
+    
+    #[Route(path: '/credit-management', name:'_credit_management', methods: ['GET'])]
+    public function creditManagement(): Response
+    {
+        // Get all users with credit
+        $usersWithCredit = $this->em->getRepository(\App\Entity\UserCateringCredit::class)->findAll();
+        
+        // Get all users who have placed catering orders
+        $qb = $this->orderRepository->createQueryBuilder('o')
+            ->select('DISTINCT o.orderer')
+            ->getQuery();
+        
+        $orderUserIds = $qb->getResult();
+        
+        // Create a map of user UUIDs to credit amounts
+        $creditMap = [];
+        foreach ($usersWithCredit as $credit) {
+            $creditMap[$credit->getUser()->toString()] = $credit->getAmount();
+        }
+        
+        // Format user data for all users
+        $userData = [];
+        
+        // First add users with credit
+        foreach ($usersWithCredit as $credit) {
+            $user = $this->userRepo->findOneById($credit->getUser());
+            if ($user) {
+                $userData[] = [
+                    'user' => $user,
+                    'credit' => $credit->getAmount(),
+                    'has_ordered' => true,
+                ];
+            }
+        }
+        
+        // Then add users who placed orders but don't have credit yet
+        foreach ($orderUserIds as $uuidArray) {
+            $uuid = $uuidArray['orderer'];
+            $uuidString = $uuid->toString();
+            
+            // Skip users already in the list (with credit)
+            if (isset($creditMap[$uuidString])) {
+                continue;
+            }
+            
+            $user = $this->userRepo->findOneById($uuid);
+            if ($user) {
+                $userData[] = [
+                    'user' => $user,
+                    'credit' => 0,
+                    'has_ordered' => true,
+                ];
+            }
+        }
+        
+        // Sort by credit amount (highest first)
+        usort($userData, function($a, $b) {
+            return $b['credit'] - $a['credit'];
+        });
+        
+        return $this->render('admin/catering/credit_management.html.twig', [
+            'users_with_credit' => $userData,
+        ]);
+    }
+    
+    #[Route(path: '/adjust-credit/{userId}', name:'_adjust_credit', methods: ['GET', 'POST'])]
+    public function adjustCredit(Request $request, string $userId): Response
+    {
+        $user = $this->userRepo->findOneById(Uuid::fromString($userId));
+        
+        if (!$user) {
+            $this->addFlash('error', 'Benutzer nicht gefunden.');
+            return $this->redirectToRoute('admin_catering_credit_management');
+        }
+        
+        // Get current credit balance
+        $currentCredit = $this->cateringService->getUserCredit($user);
+        
+        // Get transaction history
+        $transactions = $this->cateringService->getUserTransactionHistory($user);
+        
+        if ($request->isMethod('POST')) {
+            $token = $request->request->get('_token');
+            if (!$this->isCsrfTokenValid(self::CSRF_TOKEN_PAYED, $token)) {
+                throw $this->createAccessDeniedException('Invalid CSRF token presented');
+            }
+            
+            $adjustmentAmount = (int)($request->request->get('adjustment_amount') * 100); // Convert to cents
+            $note = $request->request->get('adjustment_note') ?: 'Manuelle Guthabenanpassung';
+            
+            if ($adjustmentAmount == 0) {
+                $this->addFlash('error', 'Der Anpassungsbetrag darf nicht 0 sein.');
+                return $this->redirectToRoute('admin_catering_adjust_credit', ['userId' => $userId]);
+            }
+            
+            try {
+                if ($adjustmentAmount > 0) {
+                    // Add credit
+                    $this->cateringService->addUserCredit($user, $adjustmentAmount, $note);
+                    $this->addFlash('success', sprintf('%.2f € wurden dem Guthaben hinzugefügt.', $adjustmentAmount / 100));
+                } else {
+                    // Deduct credit
+                    $success = $this->cateringService->deductUserCredit($user, abs($adjustmentAmount), null);
+                    if ($success) {
+                        $this->addFlash('success', sprintf('%.2f € wurden vom Guthaben abgezogen.', abs($adjustmentAmount) / 100));
+                    } else {
+                        $this->addFlash('error', 'Nicht genügend Guthaben verfügbar.');
+                    }
+                }
+                
+                // Apply credit to open orders if requested
+                if ($request->request->get('apply_to_orders')) {
+                    $result = $this->cateringService->applyUserCreditToOrders($user);
+                    if ($result['orders_processed'] > 0) {
+                        $this->addFlash('success', sprintf(
+                            '%d Bestellung(en) im Wert von %.2f € wurden mit dem Guthaben bezahlt.',
+                            $result['orders_processed'],
+                            $result['amount_used'] / 100
+                        ));
+                    }
+                }
+                
+                return $this->redirectToRoute('admin_catering_credit_management');
+            } catch (\Exception $e) {
+                $this->addFlash('error', 'Fehler bei der Anpassung des Guthabens: ' . $e->getMessage());
+            }
+        }
+        
+        return $this->render('admin/catering/adjust_credit.html.twig', [
+            'user' => $user,
+            'current_credit' => $currentCredit,
+            'transactions' => $transactions,
+            'csrf_token' => self::CSRF_TOKEN_PAYED
+        ]);
+    }
+
+    #[Route(path: '/financial/{userId}', name:'_financial', methods: ['GET', 'POST'])]
+    public function userFinancial(Request $request, string $userId): Response
+    {
+        $user = $this->userRepo->findOneById(Uuid::fromString($userId));
+        
+        if (!$user) {
+            $this->addFlash('error', 'Benutzer nicht gefunden.');
+            return $this->redirectToRoute('admin_catering_payments');
+        }
+        
+        // Get user's payment sent orders
+        $paymentSentOrders = $this->orderRepository->findBy([
+            'orderer' => $user->getUuid(),
+            'status' => \App\Entity\CateringOrderStatus::PaymentSent
+        ], ['createdAt' => 'ASC']);
+        
+        // Also get any open orders
+        $openOrders = $this->orderRepository->findBy([
+            'orderer' => $user->getUuid(),
+            'status' => \App\Entity\CateringOrderStatus::Created
+        ], ['createdAt' => 'ASC']);
+        
+        // Calculate totals
+        $totalPaymentSent = 0;
+        foreach ($paymentSentOrders as $order) {
+            $totalPaymentSent += $order->calculateTotal();
+        }
+        
+        $totalOpenOrders = 0;
+        foreach ($openOrders as $order) {
+            $totalOpenOrders += $order->calculateTotal();
+        }
+        
+        // Get current credit balance and transaction history
+        $currentCredit = $this->cateringService->getUserCredit($user);
+        $transactions = $this->cateringService->getUserTransactionHistory($user);
+        
+        if ($request->isMethod('POST')) {
+            $token = $request->request->get('_token');
+            if (!$this->isCsrfTokenValid(self::CSRF_TOKEN_PAYED, $token)) {
+                throw $this->createAccessDeniedException('Invalid CSRF token presented');
+            }
+            
+            $transactionType = $request->request->get('transaction_type');
+            $amount = (int)($request->request->get('amount') * 100); // Convert to cents
+            $note = $request->request->get('note');
+            $autoApply = $request->request->has('auto_apply');
+            
+            if ($amount <= 0) {
+                $this->addFlash('error', 'Der Betrag muss größer als 0 sein.');
+                return $this->redirectToRoute('admin_catering_financial', ['userId' => $userId]);
+            }
+            
+            try {
+                switch ($transactionType) {
+                    case 'payment':
+                        // Process payment
+                        $result = $this->cateringService->processPayment($user, $amount, $note);
+                        
+                        $this->addFlash('success', sprintf(
+                            'Zahlung über %.2f € wurde verarbeitet. %d Bestellung(en) wurden bezahlt und %.2f € wurden dem Guthaben gutgeschrieben.',
+                            $amount / 100,
+                            $result['orders_processed'],
+                            $result['amount_credited'] / 100
+                        ));
+                        break;
+                        
+                    case 'credit_deduct':
+                        // Deduct credit - pass null as order and the note as fourth parameter
+                        $success = $this->cateringService->deductUserCredit($user, $amount, null, $note ?: 'Manuelle Guthabenanpassung');
+                        if ($success) {
+                            $this->addFlash('success', sprintf('%.2f € wurden vom Guthaben abgezogen.', $amount / 100));
+                        } else {
+                            $this->addFlash('error', 'Nicht genügend Guthaben verfügbar.');
+                        }
+                        break;
+                        
+                    default:
+                        $this->addFlash('error', 'Ungültiger Transaktionstyp.');
+                        break;
+                }
+                
+                // Redirect to the same page to see updates
+                return $this->redirectToRoute('admin_catering_financial', ['userId' => $userId]);
+                
+            } catch (\Exception $e) {
+                $this->addFlash('error', 'Fehler bei der Verarbeitung: ' . $e->getMessage());
+            }
+        }
+        
+        return $this->render('admin/catering/user_financial.html.twig', [
+            'user' => $user,
+            'payment_sent_orders' => $paymentSentOrders,
+            'open_orders' => $openOrders,
+            'total_payment_sent' => $totalPaymentSent,
+            'total_open_orders' => $totalOpenOrders,
+            'current_credit' => $currentCredit,
+            'transactions' => $transactions,
+            'csrf_token' => self::CSRF_TOKEN_PAYED
+        ]);
+    }
+
     /**
      * Helper method to get form errors as an array for debugging
      */
@@ -437,5 +785,43 @@ class CateringController extends AbstractController {
             $errors[] = $error->getMessage();
         }
         return $errors;
+    }
+
+    /**
+     * Search for users to add credit
+     */
+    #[Route(path: '/search-users', name:'_search_users', methods: ['GET'])]
+    public function searchUsers(Request $request): Response
+    {
+        $query = $request->query->get('q');
+        
+        // Return empty array for empty or too short queries
+        if (!$query || strlen($query) < 2) {
+            return $this->json([]);
+        }
+        
+        // Search for users using IdmRepository's findFuzzy method
+        $usersCollection = $this->userRepo->findFuzzy($query);
+        
+        // Convert to array and limit results
+        $users = [];
+        $count = 0;
+        foreach ($usersCollection as $user) {
+            if ($count >= 10) break; // Limit to 10 results
+            $users[] = $user;
+            $count++;
+        }
+        
+        // Format data for JSON response
+        $result = [];
+        foreach ($users as $user) {
+            $result[] = [
+                'uuid' => $user->getUuid()->toString(),
+                'nickname' => $user->getNickname(),
+                'email' => $user->getEmail(),
+            ];
+        }
+        
+        return $this->json($result);
     }
 }

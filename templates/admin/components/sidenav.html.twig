@@ -60,6 +60,12 @@
                     <a class="nav-link {% if app.request.get('_route') == 'admin_catering' %}active{% endif %}" href="{{ path('admin_catering') }}"><i class="fas fa-list fa-fw"></i> Bestellungen </a>
                 </li>
                 <li class="nav-item">
+                    <a class="nav-link {% if app.request.get('_route') == 'admin_catering_credit_management' %}active{% endif %}" href="{{ path('admin_catering_payments') }}"><i class="fas fa-euro fa-fw"></i> Zahlungen </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link {% if app.request.get('_route') == 'admin_catering_credit_management' %}active{% endif %}" href="{{ path('admin_catering_credit_management') }}"><i class="fas fa-plus fa-fw"></i> Guthaben </a>
+                </li>
+                <li class="nav-item">
                     <a class="nav-link {% if app.request.get('_route') starts with 'admin_catering_product' %}active{% endif %}" href="{{ path('admin_catering_product') }}"><i class="fas fa-shopping-basket fa-fw"></i> Produkte </a>
                 </li>
                 <li class="nav-item">

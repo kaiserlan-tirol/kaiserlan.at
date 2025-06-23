@@ -1,0 +1,153 @@
+{% extends 'admin/adminBase.html.twig' %}
+
+{% block title %}Zahlung verarbeiten - {{ user.nickname }}{% endblock %}
+
+{% block main %}
+<div class="container-fluid">
+    <div class="row mb-3">
+        <div class="col-12">
+            <h1>Zahlung verarbeiten</h1>
+            <p class="lead">
+                Benutzer: <strong>{{ user.nickname }}</strong> 
+                <small class="text-muted">({{ user.email }})</small>
+            </p>
+        </div>
+    </div>
+    
+    <div class="row">
+        <div class="col-md-7">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Bestellübersicht</h5>
+                </div>
+                <div class="card-body p-0">
+                    {% if payment_sent_orders|length > 0 %}
+                        <div class="alert alert-info m-3">
+                            <h6 class="font-weight-bold"><i class="fas fa-info-circle"></i> Bestellungen mit Status "Zahlung gesendet"</h6>
+                            <p class="mb-1">Der Benutzer hat für diese Bestellungen angegeben, dass er die Zahlung bereits gesendet hat.</p>
+                            <p class="mb-0">Gesamtbetrag: <strong>{{ (total_payment_sent/100) | format_currency('EUR') }}</strong></p>
+                        </div>
+                        
+                        <div class="table-responsive">
+                            <table class="table table-striped mb-0">
+                                <thead>
+                                    <tr>
+                                        <th>Bestellung #</th>
+                                        <th>Datum</th>
+                                        <th>Betrag</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for order in payment_sent_orders %}
+                                        <tr>
+                                            <td>
+                                                <a href="{{ path('admin_catering_show', {'id': order.id}) }}" target="_blank">
+                                                    #{{ order.id }}
+                                                </a>
+                                            </td>
+                                            <td>{{ order.createdAt|date('d.m.Y H:i') }}</td>
+                                            <td>{{ (order.calculateTotal/100) | format_currency('EUR') }}</td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="alert alert-success m-3">
+                            <i class="far fa-check-circle"></i> Keine Bestellungen mit Status "Zahlung gesendet" vorhanden.
+                        </div>
+                    {% endif %}
+                    
+                    {% if open_orders|length > 0 %}
+                        <div class="alert alert-warning m-3 mt-0">
+                            <h6 class="font-weight-bold"><i class="fas fa-exclamation-triangle"></i> Offene Bestellungen</h6>
+                            <p class="mb-1">Diese Bestellungen sind noch offen (nicht als "Zahlung gesendet" markiert).</p>
+                            <p class="mb-0">Gesamtbetrag: <strong>{{ (total_open_orders/100) | format_currency('EUR') }}</strong></p>
+                        </div>
+                        
+                        <div class="table-responsive">
+                            <table class="table table-striped mb-0">
+                                <thead>
+                                    <tr>
+                                        <th>Bestellung #</th>
+                                        <th>Datum</th>
+                                        <th>Betrag</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for order in open_orders %}
+                                        <tr>
+                                            <td>
+                                                <a href="{{ path('admin_catering_show', {'id': order.id}) }}" target="_blank">
+                                                    #{{ order.id }}
+                                                </a>
+                                            </td>
+                                            <td>{{ order.createdAt|date('d.m.Y H:i') }}</td>
+                                            <td>{{ (order.calculateTotal/100) | format_currency('EUR') }}</td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-5">
+            <div class="card mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">Zahlung verarbeiten</h5>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info">
+                        <p class="mb-1"><strong>Aktuelles Guthaben:</strong> {{ (current_credit/100) | format_currency('EUR') }}</p>
+                    </div>
+                    
+                    <form action="{{ path('admin_catering_process_payment', {'userId': user.uuid}) }}" method="post">
+                        <input type="hidden" name="_token" value="{{ csrf_token(csrf_token) }}">
+                        
+                        <div class="form-group">
+                            <label for="payment_amount">Zahlungsbetrag (€):</label>
+                            <div class="input-group">
+                                <div class="input-group-prepend">
+                                    <span class="input-group-text"><i class="fas fa-euro-sign"></i></span>
+                                </div>
+                                <input type="number" id="payment_amount" name="payment_amount" class="form-control" step="0.01" 
+                                       value="{{ (total_payment_sent/100) }}" min="0.01" required>
+                            </div>
+                            <small class="form-text text-muted">
+                                Geben Sie den tatsächlichen Betrag ein, den der Benutzer bezahlt hat. 
+                                Überschüssiger Betrag wird automatisch als Guthaben gespeichert.
+                            </small>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="payment_note">Notiz:</label>
+                            <textarea id="payment_note" name="payment_note" class="form-control" rows="3" 
+                                      placeholder="Optionale Notiz zur Zahlung..."></textarea>
+                        </div>
+                        
+                        <div class="form-group">
+                            <button type="submit" class="btn btn-success btn-block">
+                                <i class="fas fa-check-circle"></i> Zahlung verarbeiten
+                            </button>
+                        </div>
+                    </form>
+                    
+                    <hr>
+                    
+                    <div class="alert alert-warning">
+                        <h6 class="font-weight-bold"><i class="fas fa-info-circle"></i> Hinweis zur Verarbeitung:</h6>
+                        <ul class="mb-0">
+                            <li>Die ältesten "Zahlung gesendet" Bestellungen werden zuerst bezahlt</li>
+                            <li>Falls kein/wenig Geld für "Zahlung gesendet" Bestellungen übrig ist, wird es als Guthaben gutgeschrieben</li>
+                            <li>Falls zu wenig Geld für alle Bestellungen eingegangen ist, bleiben die restlichen im Status "Zahlung gesendet"</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

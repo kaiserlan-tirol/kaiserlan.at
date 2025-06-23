@@ -135,6 +135,9 @@ class CateringController extends AbstractController
             }
         }
         
+        // Get user's credit balance
+        $creditBalance = $this->cateringService->getUserCredit($user);
+        
         // show orders with option to pay
         return $this->render('site/catering/orders.html.twig', [
             'orders' => $orders,
@@ -142,6 +145,7 @@ class CateringController extends AbstractController
             'csrf_token_pay' => self::CSRF_TOKEN_PAY,
             'total_open_orders' => $totalOpenOrders,
             'has_open_orders' => $hasOpenOrders,
+            'credit_balance' => $creditBalance,
         ]);
     }
 
@@ -213,5 +217,73 @@ class CateringController extends AbstractController
         }
         
         return $this->redirectToRoute('catering_orders');
+    }
+    
+    #[Route(path: '/payment-sent', name: '_payment_sent', methods: ['POST'])]
+    public function markPaymentSent(Request $request): Response
+    {
+        $token = $request->request->get('_token');
+        if (!$this->isCsrfTokenValid(self::CSRF_TOKEN_PAY, $token)) {
+            throw $this->createAccessDeniedException('Invalid CSRF token presented');
+        }
+        
+        /** @var User $user */
+        $user = $this->getUser()->getUser();
+        $orders = $this->cateringService->getOrderByUser($user);
+        
+        // Only process open orders
+        $openOrders = array_filter($orders, function(CateringOrder $order) {
+            return $order->isOpen();
+        });
+        
+        if (count($openOrders) === 0) {
+            $this->addFlash('info', "Keine offenen Bestellungen vorhanden.");
+            return $this->redirectToRoute('catering_orders');
+        }
+        
+        // Calculate total amount
+        $totalAmount = 0;
+        foreach ($openOrders as $order) {
+            $totalAmount += $order->calculateTotal();
+        }
+        
+        // Mark all open orders as payment sent
+        try {
+            $this->cateringService->markOrdersAsPaymentSent($openOrders);
+            
+            $formattedAmount = number_format($totalAmount / 100, 2, ',', '.') . ' €';
+            $this->addFlash('success', count($openOrders) . " Bestellung(en) im Wert von {$formattedAmount} wurden als \"Zahlung gesendet\" markiert.");
+            $this->logger->info('Orders marked as payment sent', [
+                'user_id' => $user->getUuid()->toString(),
+                'order_count' => count($openOrders),
+                'total_amount' => $totalAmount,
+            ]);
+        } catch (\Exception $e) {
+            $this->logger->error('Error marking orders as payment sent', [
+                'error' => $e->getMessage(),
+                'user_id' => $user->getUuid()->toString(),
+            ]);
+            $this->addFlash('error', "Fehler beim Markieren der Bestellungen: " . $e->getMessage());
+        }
+        
+        return $this->redirectToRoute('catering_orders');
+    }
+    
+    #[Route(path: '/credit', name: '_credit')]
+    public function userCredit(): Response
+    {
+        /** @var User $user */
+        $user = $this->getUser()->getUser();
+        
+        // Get user credit balance
+        $creditBalance = $this->cateringService->getUserCredit($user);
+        
+        // Get transaction history
+        $transactions = $this->cateringService->getUserTransactionHistory($user);
+        
+        return $this->render('site/catering/credit.html.twig', [
+            'credit_balance' => $creditBalance,
+            'transactions' => $transactions,
+        ]);
     }
 }

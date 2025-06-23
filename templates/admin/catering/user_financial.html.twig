@@ -1,0 +1,248 @@
+{% extends 'admin/adminBase.html.twig' %}
+
+{% block title %}Guthaben - {{ user.nickname }}{% endblock %}
+
+{% block main %}
+<div class="container-fluid">
+    <div class="row mb-3">
+        <div class="col-12">
+          <h1>Guthaben - {{ user.nickname }}</h1>
+          <a href="{{ path('admin_catering_credit_management') }}" class="btn btn-secondary mb-3">
+            <i class="fas fa-arrow-left"></i> Guthabenverwaltung
+          </a>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">Zahlungs- und Guthabenverwaltung</h5>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info">
+                        <p class="mb-0"><strong>Aktuelles Guthaben:</strong> {{ (current_credit/100) | format_currency('EUR') }}</p>
+                    </div>
+                    
+                    {% if payment_sent_orders|length > 0 or open_orders|length > 0 %}
+                        <div class="alert alert-warning">
+                            <p class="mb-0">
+                                <strong>Offene Bestellungen gesamt:</strong> {{ ((total_payment_sent + total_open_orders)/100) | format_currency('EUR') }}
+                                {% if payment_sent_orders|length > 0 %}
+                                    <br><small>"Zahlung gesendet" Bestellungen: {{ (total_payment_sent/100) | format_currency('EUR') }}</small>
+                                {% endif %}
+                                {% if open_orders|length > 0 %}
+                                    <br><small>Andere offene Bestellungen: {{ (total_open_orders/100) | format_currency('EUR') }}</small>
+                                {% endif %}
+                            </p>
+                        </div>
+                    {% endif %}
+                    
+                    <form action="{{ path('admin_catering_financial', {'userId': user.uuid}) }}" method="post">
+                        <input type="hidden" name="_token" value="{{ csrf_token(csrf_token) }}">
+                        
+                        <div class="form-group">
+                            <label for="transaction_type">Transaktionstyp:</label>
+                            <select id="transaction_type" name="transaction_type" class="form-control">
+                                <option value="payment">Zahlung eingegangen</option>
+                                <option value="credit_deduct">Guthaben reduzieren</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="amount">Betrag (€):</label>
+                            <div class="input-group">
+                                <div class="input-group-prepend">
+                                    <span class="input-group-text"><i class="fas fa-euro-sign"></i></span>
+                                </div>
+                                <input type="number" id="amount" name="amount" class="form-control" step="0.01" 
+                                       value="{% if payment_sent_orders|length > 0 %}{{ (total_payment_sent/100) }}{% else %}0.00{% endif %}" min="0.01" required>
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="note">Notiz:</label>
+                            <textarea id="note" name="note" class="form-control" rows="2" 
+                                      placeholder="Optionale Notiz zur Transaktion..."></textarea>
+                        </div>
+                        
+                        <div class="form-check mb-3 payment-option">
+                            <input type="checkbox" class="form-check-input" id="auto_apply" name="auto_apply" value="1" checked="checked">
+                            <label class="form-check-label" for="auto_apply">Verfügbares Guthaben auf offene Bestellungen anwenden</label>
+                        </div>
+                        
+                        <div class="form-group">
+                            <button type="submit" class="btn btn-success btn-block">
+                                <i class="fas fa-check-circle"></i> <span id="submit_text">Transaktion durchführen</span>
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Bestellübersicht</h5>
+                </div>
+                <div class="card-body p-0">
+                    {% set has_orders = false %}
+
+                    {% if payment_sent_orders|length > 0 %}
+                        {% set has_orders = true %}
+                        <div class="mb-2 px-3 pt-3">
+                            <h6 class="font-weight-bold"><i class="fas fa-info-circle"></i> Bestellungen mit Status "Zahlung gesendet"</h6>
+                        </div>
+                        
+                        <div class="table-responsive">
+                            <table class="table table-sm table-striped mb-3">
+                                <thead>
+                                    <tr>
+                                        <th>Bestellung #</th>
+                                        <th>Datum</th>
+                                        <th>Betrag</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for order in payment_sent_orders %}
+                                        <tr>
+                                            <td>
+                                                <a href="{{ path('admin_catering_show', {'id': order.id}) }}" target="_blank">
+                                                    #{{ order.id }}
+                                                </a>
+                                            </td>
+                                            <td>{{ order.createdAt|date('d.m.Y H:i') }}</td>
+                                            <td>{{ (order.calculateTotal/100) | format_currency('EUR') }}</td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% endif %}
+                    
+                    {% if open_orders|length > 0 %}
+                        {% set has_orders = true %}
+                        <div class="mb-2 px-3 {% if payment_sent_orders|length > 0 %}pt-0{% else %}pt-3{% endif %}">
+                            <h6 class="font-weight-bold"><i class="fas fa-exclamation-triangle"></i> Offene Bestellungen</h6>
+                        </div>
+                        
+                        <div class="table-responsive">
+                            <table class="table table-sm table-striped mb-0">
+                                <thead>
+                                    <tr>
+                                        <th>Bestellung #</th>
+                                        <th>Datum</th>
+                                        <th>Betrag</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for order in open_orders %}
+                                        <tr>
+                                            <td>
+                                                <a href="{{ path('admin_catering_show', {'id': order.id}) }}" target="_blank">
+                                                    #{{ order.id }}
+                                                </a>
+                                            </td>
+                                            <td>{{ order.createdAt|date('d.m.Y H:i') }}</td>
+                                            <td>{{ (order.calculateTotal/100) | format_currency('EUR') }}</td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% endif %}
+
+                    {% if not has_orders %}
+                        <div class="alert alert-success m-3">
+                            <i class="far fa-check-circle"></i> Keine offenen Bestellungen vorhanden.
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Transaktionshistorie</h5>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-striped mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Datum</th>
+                                    <th>Beschreibung</th>
+                                    <th>Betrag</th>
+                                    <th>Typ</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% if transactions|length > 0 %}
+                                    {% for transaction in transactions %}
+                                        <tr>
+                                            <td>{{ transaction.timestamp|date('d.m.Y H:i') }}</td>
+                                            <td>
+                                                {{ transaction.description }}
+                                                {% if transaction.order %}
+                                                    <a href="{{ path('admin_catering_show', {'id': transaction.order.id}) }}" class="ml-1" target="_blank">
+                                                        <small>(Bestellung #{{ transaction.order.id }})</small>
+                                                    </a>
+                                                {% endif %}
+                                            </td>
+                                            <td class="{% if transaction.amount >= 0 %}text-success{% else %}text-danger{% endif %}">
+                                                {{ (transaction.amount/100) | format_currency('EUR') }}
+                                            </td>
+                                            <td>
+                                                {% if transaction.type == 'payment_received' %}
+                                                    <span class="badge badge-success">Einzahlung</span>
+                                                {% elseif transaction.type == 'order_payment' %}
+                                                    <span class="badge badge-primary">Bestellung</span>
+                                                {% elseif transaction.type == 'credit_adjustment' %}
+                                                    <span class="badge badge-info">Anpassung</span>
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                {% else %}
+                                    <tr>
+                                        <td colspan="4" class="text-center py-3">
+                                            Keine Transaktionen vorhanden.
+                                        </td>
+                                    </tr>
+                                {% endif %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const transactionType = document.getElementById('transaction_type');
+    const submitText = document.getElementById('submit_text');
+    const amountField = document.getElementById('amount');
+    const autoApplyOption = document.querySelector('.payment-option');
+    
+    function updateFormForType() {
+        switch(transactionType.value) {
+            case 'payment':
+                submitText.textContent = 'Zahlung verarbeiten';
+                autoApplyOption.style.display = 'block';
+                amountField.min = '0.01';
+                break;
+            case 'credit_deduct':
+                submitText.textContent = 'Guthaben reduzieren';
+                autoApplyOption.style.display = 'none';
+                amountField.min = '0.01';
+                break;
+        }
+    }
+    
+    transactionType.addEventListener('change', updateFormForType);
+    updateFormForType(); // Initialize on load
+});
+</script>
+{% endblock %}

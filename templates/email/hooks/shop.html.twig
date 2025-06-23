@@ -28,7 +28,7 @@ an:
     <p style="outline: 0px; user-select: none;">&nbsp;</p>
     <p style="outline: 0px; user-select: none;">Banking QR-Code:<br />
     <img 
-        src="data:image/png;base64,{{ qr_code_data_uri('BCD\n001\n1\nSCT\nREVOLT21\nEdenhauser KaiserLAN\nLT863250018735876769\nEUR' ~ (order.calculateTotal() / 100) ~ '\n\nOrder ' ~ order.id ~ ', Eintritt')|replace({'data:image/png;base64,': ''}) }}" 
+        src="data:image/png;base64,{{ qr_code_data_uri('BCD\n001\n1\nSCT\nREVOLT21\nKaiserLAN Edenhauser\nLT863250018735876769\nEUR' ~ (order.calculateTotal() / 100) ~ '\n\nOrder ' ~ order.id ~ ', Eintritt')|replace({'data:image/png;base64,': ''}) }}" 
         alt="QR-Code für Überweisung" 
         title="Scan mit Banking-App für einfache Überweisung"
     />

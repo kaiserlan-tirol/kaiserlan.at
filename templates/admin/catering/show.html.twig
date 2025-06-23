@@ -24,6 +24,8 @@
                         <dd class="col-sm-9">
                             {% if order.isOpen %}
                                 <span class="badge badge-warning">Offen</span>
+                            {% elseif order.isPaymentSent %}
+                                <span class="badge badge-info">Zahlung gesendet</span>
                             {% elseif order.isActive %}
                                 <span class="badge badge-success">Bezahlt</span>
                             {% elseif order.isCanceled %}
