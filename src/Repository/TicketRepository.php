@@ -99,4 +99,23 @@ class TicketRepository extends ServiceEntityRepository
         return $qb->getQuery()
             ->getResult();
     }
+
+    /**
+     * Get all existing catering QR codes for collision checking
+     * @return array List of all cateringQrCode values that are already in use
+     */
+    public function findAllCateringQrCodes(): array
+    {
+        $result = $this->createQueryBuilder('t')
+            ->select('t.cateringQrCode')
+            ->where('t.cateringQrCode IS NOT NULL')
+            ->getQuery()
+            ->getArrayResult();
+        
+        // Extract just the codes into a flat array
+        return array_map(
+            function($item) { return $item['cateringQrCode']; }, 
+            $result
+        );
+    }
 }

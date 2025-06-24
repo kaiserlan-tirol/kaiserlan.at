@@ -29,6 +29,13 @@ XDEBUG_MODE=debug symfony server:start --port=8002 --no-tls
 ```
 Open the printed URL in your browser and log in with a superuser credential 
 
+### Database updates
+Schema changes have to applied via:
+```bash
+php bin/console doctrine:schema:update --force --complete
+php bin/console doctrine:schema:validate
+```
+
 ### Debugging
 ```bash
 # on kaiserlan plesk bash-4.4$ /.phpenv/versions/8.3/bin/php bin/console cache:clear
@@ -49,6 +56,10 @@ symfony server:stop
 symfony server:reset
 php bin/console doctrine:query:sql "SELECT 1"
 # then it suddenly worked
+
+# debug routes
+php bin/console debug:router | grep -i catering
+
 ```
 
 ## Hidden Features

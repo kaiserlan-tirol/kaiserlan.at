@@ -1,0 +1,645 @@
+{% extends 'site/catering/kassa/base.html.twig' %}
+
+{% block title %}QR-Code scannen - KaiserLAN Kassa{% endblock %}
+
+{% block content %}
+<div class="text-center">
+    <div style="margin-bottom: 40px;">
+        <i class="fas fa-camera" style="font-size: 6rem; color: #007be6; margin-bottom: 30px;"></i>
+        <h2 style="color: #333; font-size: 2.2rem; margin-bottom: 20px;">
+            QR-Code scannen
+        </h2>
+        <p style="color: #666; font-size: 1.3rem; margin-bottom: 40px;">
+            Halte deinen QR-Code vor die Kamera oder gib ihn manuell ein
+        </p>
+    </div>
+    
+    <!-- QR Scanner Container -->
+    <div style="max-width: 400px; margin: 0 auto 20px auto;">
+        <div id="qr-scanner" style="border-radius: 15px; overflow: hidden; box-shadow: 0 8px 32px rgba(0,0,0,0.1); background: #f8f9fa;"></div>
+        <div style="margin-top: 15px; text-align: center;">
+            <button type="button" id="start-scanner" class="btn btn-success" style="margin-right: 10px; display: none;">
+                <i class="fas fa-camera"></i> Scanner starten
+            </button>
+            <button type="button" id="stop-scanner" class="btn btn-danger" style="display: none;">
+                <i class="fas fa-stop"></i> Scanner stoppen
+            </button>
+            <button type="button" id="switch-camera" class="btn btn-info" style="margin-left: 10px; display: none;">
+                <i class="fas fa-sync-alt"></i> Kamera wechseln
+            </button>
+        </div>
+        <div id="scanner-feedback" style="margin-top: 10px; text-align: center; font-size: 0.9rem; min-height: 20px;"></div>
+    </div>
+    
+    <!-- Manual input form -->
+    <div id="manual-input-section">
+        <div style="max-width: 500px; margin: 0 auto;">
+            <div style="margin-bottom: 30px;">
+                <label for="qr_code" style="display: block; font-size: 1.2rem; font-weight: 600; color: #333; margin-bottom: 15px;">
+                    QR-Code eingeben:
+                </label>
+                <div style="position: relative; max-width: 200px;  margin: 0 auto;">
+                    <input 
+                        type="text" 
+                        id="qr_code" 
+                        name="qr_code" 
+                        class="form-control" 
+                        style="font-size: 1.3rem; padding: 15px 50px 15px 15px; border-radius: 10px; border: 2px solid #ddd; text-align: center; width: 100%; text-transform: uppercase;"
+                        autocomplete="off"
+                        maxlength="4"
+                        minlength="4"
+                        pattern="[A-Z0-9]{4}"
+                        placeholder="XXXX"
+                    >
+                    <button type="button" id="clear-input" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: none; border: none; color: #999; font-size: 1.2rem; cursor: pointer;">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div id="input-feedback" style="margin-top: 10px; font-size: 1rem; min-height: 20px;"></div>
+            </div>
+            
+            <button type="button" id="submit-qr" class="btn btn-primary" style="padding: 10px 20px; font-size: 1rem; border-radius: 8px;" disabled>
+                <i class="fas fa-arrow-right" style="margin-right: 10px;"></i>
+                Weiter
+            </button>
+        </div>
+    </div>
+    
+    <div class="kassa-navigation" style="margin-top: 0;">
+            <a href="{{ path('catering_kassa_index') }}" class="btn-kassa btn-kassa-danger">
+                <i class="fas fa-times"></i>
+                Abbrechen
+            </a>
+        </div>
+</div>
+
+<!-- Toast container for notifications -->
+<div class="toast-container" id="toast-container"></div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Check if Html5Qrcode is available
+    if (typeof Html5Qrcode === 'undefined') {
+        console.error('Html5Qrcode library not loaded!');
+        document.getElementById('scanner-feedback').innerHTML = '<span style="color: #dc3545;"><i class="fas fa-exclamation-triangle"></i> QR-Scanner Bibliothek nicht geladen</span>';
+        document.getElementById('start-scanner').disabled = true;
+        return;
+    }
+    
+    console.log('Html5Qrcode library loaded successfully:', typeof Html5Qrcode);
+    
+    const qrInput = document.getElementById('qr_code');
+    const submitBtn = document.getElementById('submit-qr');
+    const clearBtn = document.getElementById('clear-input');
+    const feedback = document.getElementById('input-feedback');
+    const scannerFeedback = document.getElementById('scanner-feedback');
+    const startScannerBtn = document.getElementById('start-scanner');
+    const stopScannerBtn = document.getElementById('stop-scanner');
+    const switchCameraBtn = document.getElementById('switch-camera');
+    
+    let html5QrCode = null;
+    let currentFacingMode = 'environment'; // Start with back camera
+    let cameras = [];
+    let currentCameraIndex = 0;
+    
+    // Auto-focus the input field
+    qrInput.focus();
+    
+    // Initialize scanner
+    function initScanner() {
+        if (html5QrCode) {
+            return;
+        }
+        
+        // Show loading placeholder
+        document.getElementById('qr-scanner').innerHTML = `
+            <div class="scanner-placeholder">
+                <i class="fas fa-camera" style="font-size: 3rem; margin-bottom: 15px;"></i>
+                <p style="margin: 0; font-size: 1.1rem;">Initialisiere Kamera...</p>
+                <small>Scanner startet automatisch</small>
+            </div>
+        `;
+        
+        html5QrCode = new Html5Qrcode("qr-scanner");
+        
+        // Get available cameras
+        Html5Qrcode.getCameras().then(devices => {
+            if (devices && devices.length) {
+                cameras = devices;
+                if (cameras.length > 1) {
+                    switchCameraBtn.style.display = 'inline-block';
+                }
+                scannerFeedback.innerHTML = '<span style="color: #28a745;"><i class="fas fa-camera"></i> ' + cameras.length + ' ' + (cameras.length > 1 ? 'Kameras' : 'Kamera') + ' verfügbar</span>';
+
+                // Automatically start the scanner instead of showing placeholder
+                setTimeout(() => {
+                    startScanner();
+                }, 500);
+            } else {
+                scannerFeedback.innerHTML = '<span style="color: #dc3545;"><i class="fas fa-exclamation-triangle"></i> Keine Kamera gefunden</span>';
+                startScannerBtn.disabled = true;
+                document.getElementById('qr-scanner').innerHTML = `
+                    <div class="scanner-placeholder">
+                        <i class="fas fa-camera-slash" style="font-size: 3rem; margin-bottom: 15px;"></i>
+                        <p style="margin: 0; font-size: 1.1rem;">Keine Kamera verfügbar</p>
+                        <small>Verwende die manuelle Eingabe</small>
+                    </div>
+                `;
+            }
+        }).catch(err => {
+            scannerFeedback.innerHTML = '<span style="color: #dc3545;"><i class="fas fa-exclamation-triangle"></i> Kamera-Zugriff fehlgeschlagen</span>';
+            startScannerBtn.disabled = true;                document.getElementById('qr-scanner').innerHTML = `
+                    <div class="scanner-placeholder">
+                        <i class="fas fa-exclamation-triangle" style="font-size: 3rem; margin-bottom: 15px;"></i>
+                        <p style="margin: 0; font-size: 1.1rem;">Kamera-Zugriff verweigert</p>
+                        <small>Verwende die manuelle Eingabe unten</small>
+                    </div>
+                `;
+            console.error('Camera access error:', err);
+        });
+    }
+    
+    // Start scanner
+    function startScanner() {
+        if (!html5QrCode) {
+            initScanner();
+            return;
+        }
+        
+        const config = {
+            fps: 10,
+            qrbox: { width: 250, height: 250 },
+            aspectRatio: 1.0
+        };
+        
+        const cameraId = cameras.length > 0 ? cameras[currentCameraIndex].id : undefined;
+        
+        html5QrCode.start(
+            cameraId || { facingMode: currentFacingMode },
+            config,
+            (decodedText, decodedResult) => {
+                // QR code successfully scanned
+                onQrCodeScanned(decodedText);
+            },
+            (errorMessage) => {
+                // Ignore scanning errors (they happen frequently)
+            }
+        ).then(() => {
+            startScannerBtn.style.display = 'none';
+            stopScannerBtn.style.display = 'inline-block';
+            if (cameras.length > 1) {
+                switchCameraBtn.style.display = 'inline-block';
+            }
+            scannerFeedback.innerHTML = '<span style="color:rgb(0, 136, 254);"><i class="fas fa-camera"></i> Scanner aktiv - QR-Code vor die Kamera halten</span>';
+        }).catch(err => {
+            scannerFeedback.innerHTML = '<span style="color: #dc3545;"><i class="fas fa-exclamation-triangle"></i> Scanner-Start fehlgeschlagen</span>';
+            console.error('Scanner start error:', err);
+            
+            // Show start button to allow manual retry
+            startScannerBtn.style.display = 'inline-block';
+            
+            // Auto-retry after a delay
+            setTimeout(() => {
+                if (cameras.length > 0) {
+                    startScanner();
+                }
+            }, 3000); // Retry after 3 seconds
+        });
+    }
+    
+    // Stop scanner
+    function stopScanner() {
+        if (html5QrCode && html5QrCode.isScanning) {
+            html5QrCode.stop().then(() => {
+                startScannerBtn.style.display = 'inline-block';
+                stopScannerBtn.style.display = 'none';
+                switchCameraBtn.style.display = 'none';
+                scannerFeedback.innerHTML = '<span style="color: #6c757d;"><i class="fas fa-camera-slash"></i> Scanner gestoppt</span>';
+            }).catch(err => {
+                console.error('Scanner stop error:', err);
+            });
+        }
+    }
+    
+    // Switch camera
+    function switchCamera() {
+        if (cameras.length <= 1) return;
+        
+        stopScanner();
+        currentCameraIndex = (currentCameraIndex + 1) % cameras.length;
+        
+        setTimeout(() => {
+            startScanner();
+        }, 500);
+    }
+    
+    // Force scanner restart when needed
+    function restartScanner() {
+        if (html5QrCode && html5QrCode.isScanning) {
+            stopScanner();
+        }
+        setTimeout(() => {
+            startScanner();
+        }, 500);
+    }
+    
+    // Handle QR code scan result
+    function onQrCodeScanned(decodedText) {
+        stopScanner();
+        qrInput.value = decodedText;
+        scannerFeedback.innerHTML = '<span style="color: #28a745;"><i class="fas fa-check"></i> QR-Code gescannt!</span>';
+        
+        // Trigger input event to update feedback
+        qrInput.dispatchEvent(new Event('input'));
+        
+        // Auto-submit after a short delay
+        setTimeout(() => {
+            if (!submitBtn.disabled) {
+                submitQRCode();
+            }
+        }, 1000);
+    }
+    
+    // Event listeners for scanner controls
+    startScannerBtn.addEventListener('click', startScanner);
+    stopScannerBtn.addEventListener('click', stopScanner);
+    switchCameraBtn.addEventListener('click', switchCamera);
+    
+    // Initialize scanner on page load
+    initScanner();
+    
+    // Enable/disable submit button based on input
+    qrInput.addEventListener('input', function() {
+        // Convert to uppercase automatically
+        this.value = this.value.toUpperCase();
+        
+        // Restrict to exactly 4 characters
+        const value = this.value.trim();
+        submitBtn.disabled = value.length !== 4;
+        
+        if (value.length === 0) {
+            feedback.textContent = '';
+            clearBtn.style.display = 'none';
+        } else {
+            clearBtn.style.display = 'block';
+            
+            // Provide feedback on input format
+            if (value.length === 4) {
+                feedback.innerHTML = '<span style="color: #28a745;"><i class="fas fa-qrcode"></i> QR-Code vollständig</span>';
+                // Auto-submit after a short delay when 4 characters are entered
+                setTimeout(() => {
+                    if (this.value.trim().length === 4) {
+                        submitBtn.click();
+                    }
+                }, 300);
+            } else {
+                feedback.innerHTML = '<span style="color: #6c757d;"><i class="fas fa-info-circle"></i> Genau 4 Zeichen erforderlich</span>';
+            }
+        }
+    });
+    
+    // Clear input
+    clearBtn.addEventListener('click', function() {
+        qrInput.value = '';
+        qrInput.focus();
+        submitBtn.disabled = true;
+        feedback.textContent = '';
+        this.style.display = 'none';
+    });
+    
+    // Handle form submission
+    function submitQRCode() {
+        // Convert to uppercase and trim
+        const value = qrInput.value.trim().toUpperCase();
+        if (!value) return;
+        
+        // Stop scanner if running
+        if (html5QrCode && html5QrCode.isScanning) {
+            stopScanner();
+        }
+        
+        // Show loading state
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin" style="margin-right: 10px;"></i>Suche Benutzer...';
+        feedback.innerHTML = '<span style="color: #4dacff;"><i class="fas fa-search"></i> Benutzer wird gesucht...</span>';
+        
+        // Submit to QR lookup endpoint
+        const formData = new FormData();
+        formData.append('qr_code', value);
+        
+        fetch('{{ path("catering_kassa_qr_lookup") }}', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())            .then(data => {
+                if (data.success) {
+                    feedback.innerHTML = '<span style="color: #28a745;"><i class="fas fa-check"></i> Benutzer gefunden: ' + data.user.nickname + '</span>';
+                    
+                    // Redirect after short delay with checked URL
+                    setTimeout(() => {
+                        console.log("Redirecting to:", data.redirect);
+                        console.log("User UUID:", data.user.uuid);
+                        
+                        // Directly construct a valid URL to avoid issues
+                        const baseUrl = '{{ path("catering_kassa_products", {"userId": "PLACEHOLDER"}) }}'.replace('PLACEHOLDER', encodeURIComponent(data.user.uuid));
+                        console.log("Constructed URL:", baseUrl);
+                        
+                        // Redirect using the manually constructed URL
+                        window.location.href = baseUrl;
+                    }, 1000);
+                } else {
+                    feedback.innerHTML = '<span style="color: #dc3545;"><i class="fas fa-exclamation-triangle"></i> ' + data.message + '</span>';
+                    resetButton();
+                }
+            })
+        .catch(error => {
+            feedback.innerHTML = '<span style="color: #dc3545;"><i class="fas fa-exclamation-triangle"></i> Fehler bei der Suche</span>';
+            resetButton();
+        });
+    }
+    
+    function resetButton() {
+        submitBtn.disabled = qrInput.value.trim().length !== 4;
+        submitBtn.innerHTML = '<i class="fas fa-arrow-right" style="margin-right: 10px;"></i>Weiter';
+    }
+    
+    // Handle button click
+    submitBtn.addEventListener('click', submitQRCode);
+    
+    // Handle Enter key
+    qrInput.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            if (!submitBtn.disabled) {
+                submitQRCode();
+            }
+        }
+    });
+    
+    // Session timeout management
+    let inactivityTimer;
+    let warningToastTimer;
+    const sessionTimeout = 2 * 60 * 1000; // 2 minutes
+    const warningTime = 10 * 1000; // Show warning 10 seconds before timeout
+    
+    // Function to show toast notification
+    function showToast(title, message, actionText = null, actionCallback = null) {
+        const toastContainer = document.getElementById('toast-container');
+        
+        // Create toast element
+        const toast = document.createElement('div');
+        toast.className = 'toast';
+        
+        // Create toast content
+        let toastHTML = `
+            <div class="toast-icon">
+                <i class="fas fa-clock"></i>
+            </div>
+            <div class="toast-content">
+                <div class="toast-title">${title}</div>
+                <div class="toast-body">${message}</div>
+        `;
+        
+        // Add action button if provided
+        if (actionText && actionCallback) {
+            toastHTML += `<button class="toast-action">${actionText}</button>`;
+        }
+        
+        toastHTML += `</div>`;
+        toast.innerHTML = toastHTML;
+        
+        // Add to container
+        toastContainer.appendChild(toast);
+        
+        // Action button click handler
+        if (actionText && actionCallback) {
+            const actionButton = toast.querySelector('.toast-action');
+            if (actionButton) {
+                actionButton.addEventListener('click', () => {
+                    actionCallback();
+                    removeToast();
+                });
+            }
+        }
+        
+        // Show toast with animation
+        setTimeout(() => {
+            toast.classList.add('show');
+        }, 10);
+        
+        // Function to remove the toast
+        function removeToast() {
+            toast.classList.remove('show');
+            setTimeout(() => {
+                if (toast.parentNode === toastContainer) {
+                    toastContainer.removeChild(toast);
+                }
+            }, 300);
+        }
+        
+        // Auto remove after 10 seconds if not closed already
+        setTimeout(removeToast, 10000);
+        
+        return {
+            close: removeToast
+        };
+    }
+    
+    function resetInactivityTimer() {
+        // Clear existing timers
+        clearTimeout(inactivityTimer);
+        clearTimeout(warningToastTimer);
+        
+        // Set new timers
+        warningToastTimer = setTimeout(() => {
+            const toast = showToast(
+                "Session läuft ab", 
+                "Ihre Sitzung läuft in 10 Sekunden ab.", 
+                "Sitzung verlängern", 
+                () => {
+                    // Reset the timer when user clicks the action button
+                    resetInactivityTimer();
+                }
+            );
+        }, sessionTimeout - warningTime);
+        
+        inactivityTimer = setTimeout(() => {
+            if (html5QrCode && html5QrCode.isScanning) {
+                stopScanner();
+            }
+            // Show final toast before redirecting
+            showToast("Session abgelaufen", "Sie werden zur Startseite weitergeleitet...");
+            
+            // Redirect after a short delay
+            setTimeout(() => {
+                window.location.href = '{{ path("catering_kassa_index") }}';
+            }, 2000);
+        }, sessionTimeout);
+    }
+    
+    // Reset timer on any activity
+    ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart', 'click'].forEach(event => {
+        document.addEventListener(event, resetInactivityTimer, true);
+    });
+    
+    resetInactivityTimer();
+    
+    // Cleanup on page unload
+    window.addEventListener('beforeunload', function() {
+        if (html5QrCode && html5QrCode.isScanning) {
+            stopScanner();
+        }
+    });
+});
+</script>
+
+<style>
+    .form-control:focus {
+        outline: none;
+        border-color: #007be6;
+        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+    
+    /* QR Scanner specific styles */
+    #qr-scanner {
+        min-height: 300px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    #qr-scanner video {
+        width: 100%;
+        height: auto;
+        border-radius: 10px;
+    }
+    #qr_code {
+      font-size: 1.2rem;
+    }
+    
+    /* Toast notification */
+    .toast-container {
+        position: fixed;
+        bottom: 30px;
+        right: 30px;
+        z-index: 9999;
+    }
+    
+    .toast {
+        background: rgba(0, 0, 0, 0.85);
+        color: white;
+        padding: 15px 25px;
+        border-radius: 8px;
+        margin-bottom: 10px;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        display: flex;
+        align-items: center;
+        animation: slideIn 0.3s, fadeOut 0.5s 9.5s;
+        max-width: 350px;
+        opacity: 0;
+        pointer-events: none;
+    }
+    
+    .toast.show {
+        opacity: 1;
+        pointer-events: auto;
+    }
+    
+    .toast-icon {
+        margin-right: 15px;
+        font-size: 1.2rem;
+        color: #ffcc00;
+    }
+    
+    .toast-content {
+        flex: 1;
+    }
+    
+    .toast-title {
+        font-weight: 600;
+        margin-bottom: 5px;
+        font-size: 1.1rem;
+    }
+    
+    .toast-body {
+        font-size: 0.9rem;
+        opacity: 0.9;
+    }
+    
+    .toast-action {
+        background: #007be6;
+        color: white;
+        border: none;
+        padding: 5px 15px;
+        border-radius: 4px;
+        margin-top: 8px;
+        cursor: pointer;
+        font-weight: 500;
+        font-size: 0.9rem;
+    }
+    
+    @keyframes slideIn {
+        from {
+            transform: translateX(100%);
+            opacity: 0;
+        }
+        to {
+            transform: translateX(0);
+            opacity: 1;
+        }
+    }
+    
+    @keyframes fadeOut {
+        from {
+            opacity: 1;
+        }
+        to {
+            opacity: 0;
+        }
+    }
+    
+    /* Mobile optimizations */
+    @media (max-width: 768px) {
+        #qr-scanner {
+            min-height: 250px;
+        }
+        
+        .btn {
+            font-size: 1rem;
+            padding: 10px 15px;
+        }
+    }
+    
+    /* Scanner button styles */
+    .btn-success, .btn-danger, .btn-info {
+        border-radius: 8px;
+        font-weight: 600;
+        transition: all 0.2s ease;
+    }
+    
+    .btn-success:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3);
+    }
+    
+    .btn-danger:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(220, 53, 69, 0.3);
+    }
+    
+    .btn-info:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(23, 162, 184, 0.3);
+    }
+    
+    /* Loading placeholder for scanner */
+    .scanner-placeholder {
+        background: linear-gradient(135deg, #4dacff 0%,rgb(0, 110, 206) 100%);
+        padding: 60px 20px;
+        border: 3px dashed rgba(255,255,255,0.3);
+        border-radius: 10px;
+        text-align: center;
+        color: white;
+    }
+</style>
+{% endblock %}

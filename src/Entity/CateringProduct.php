@@ -28,6 +28,9 @@ class CateringProduct
     #[ORM\Column]
     private ?bool $active = null;
 
+    #[ORM\Column(length: 255, nullable: true)]
+    private ?string $image = null; // Kept nullable for future use but currently not used
+
     /** @var Collection<int, ShopAddon> */
     #[ORM\ManyToMany(targetEntity: ShopAddon::class)]
     #[ORM\JoinTable(name: 'catering_product_addon')]
@@ -171,6 +174,18 @@ class CateringProduct
     public function setSortIndex(?int $sortIndex): static
     {
         $this->sortIndex = $sortIndex;
+
+        return $this;
+    }
+
+    public function getImage(): ?string
+    {
+        return $this->image;
+    }
+
+    public function setImage(?string $image): static
+    {
+        $this->image = $image;
 
         return $this;
     }

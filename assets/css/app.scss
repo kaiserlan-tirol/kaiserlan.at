@@ -6,9 +6,31 @@
 @import 'select2';
 
 //lightbox2
-@import '~lightbox2/dist/css/lightbox.min';
+@import '~lightbox2/dist/css/lightbo                border-left: none;
+            }
+        }
+    }
+    
+    .card-header {
+        background: linear-gradient(135deg, #007bff, #0056b3);
+        color: white;
+        
+        h5 {
+            margin: 0;
+            
+            i {
+                margin-right: 8px;
+            }
+        }
+    }
+}
 
-//datatables
+// QR code inputs always uppercase
+input.qr-code-input,
+input[name="qr_code"],
+input[name="cateringQrCode"] {
+  text-transform: uppercase;
+}les
 @import './helper/dataTables';
 
 // site specific part (not email)

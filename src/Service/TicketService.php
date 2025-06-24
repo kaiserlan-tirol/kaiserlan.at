@@ -93,9 +93,11 @@ class TicketService
         }
         return $code;
     }
-
+    
     private function persistTicket(Ticket $ticket): void
     {
+        // No longer automatically generating QR codes - they will be assigned manually
+        
         if ($ticket->getCode()) {
             $this->em->persist($ticket);
             $this->em->flush();
@@ -221,8 +223,14 @@ class TicketService
             throw new TicketLivecycleException($ticket);
         }
         if ($state == TicketState::REDEEMED) {
-            $ticket
-                ->setPunchedAt(new DateTimeImmutable());
+            // Check if catering QR code is provided
+            if (empty($ticket->getCateringQrCode())) {
+                // Throw exception if catering QR code is missing
+                throw new TicketLivecycleException($ticket, "Catering QR Code ist erforderlich");
+            }
+            
+            $ticket->setPunchedAt(new DateTimeImmutable());
+            $this->em->persist($ticket);
             $this->em->flush();
             return true;
         }

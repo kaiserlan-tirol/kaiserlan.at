@@ -6,19 +6,23 @@ use App\Entity\ShopOrderPosition;
 use App\Entity\ShopOrderPositionTicket;
 use App\Entity\CateringOrderStatus;
 use App\Entity\CateringProduct;
+use App\Entity\Ticket;
 use App\Idm\IdmManager;
 use App\Idm\IdmRepository;
 use App\Repository\CateringProductRepository;
 use App\Repository\ShopOrderPositionRepository;
 use App\Repository\ShopOrderRepository;
+use App\Repository\TicketRepository;
 use App\Entity\User;
 use App\Service\CateringService;
 use App\Service\ShopService;
+use App\Service\TicketService;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
+use Doctrine\ORM\EntityManagerInterface;
 use Ramsey\Uuid\Uuid;
 
 #[Route(path: '/catering', name: 'api_catering')]
@@ -30,6 +34,8 @@ class CateringApiController extends AbstractController
     private readonly ShopService $shopService;
     private readonly CateringService $cateringService;
     private readonly IdmRepository $userRepo;
+    private readonly EntityManagerInterface $entityManager;
+    private readonly TicketRepository $ticketRepository;
 
     public function __construct(
         ShopOrderPositionRepository $orderPositionRepository,
@@ -37,7 +43,9 @@ class CateringApiController extends AbstractController
         CateringProductRepository $productRepository,
         ShopService $shopService,
         CateringService $cateringService,
-        IdmManager $idmManager
+        IdmManager $idmManager,
+        EntityManagerInterface $entityManager,
+        TicketRepository $ticketRepository
     ) {
         $this->orderPositionRepository = $orderPositionRepository;
         $this->orderRepository = $orderRepository;
@@ -45,6 +53,8 @@ class CateringApiController extends AbstractController
         $this->shopService = $shopService;
         $this->cateringService = $cateringService;
         $this->userRepo = $idmManager->getRepository(User::class);
+        $this->entityManager = $entityManager;
+        $this->ticketRepository = $ticketRepository;
     }
     
     /**
@@ -94,13 +104,18 @@ class CateringApiController extends AbstractController
                 ];
             }
             
+            // Get ticket info including catering QR code
+            $ticket = $position->getTicket();
+            $cateringQrCode = $ticket->getCateringQrCode();
+            
             // Add to result
             $usersWithTickets[] = [
                 'user' => $userUuid,
                 'nickname' => $user->getNickname(),
                 'firstname' => $user->getFirstname(),
                 'surname' => $user->getSurname(),
-                'addons' => $formattedAddons
+                'addons' => $formattedAddons,
+                'cateringQrCode' => $cateringQrCode
             ];
             
             // Mark as processed
@@ -224,5 +239,58 @@ class CateringApiController extends AbstractController
         }
         
         return new JsonResponse($formattedProducts);
+    }
+    
+    /**
+     * Generate QR code labels for manual entry
+     * 
+     * @param Request $request The request with ?count= query parameter
+     * @return Response HTML page with QR code labels ready for printing
+     */
+    #[Route(path: '/generate-labels', name: '_generate_labels', methods: ['GET'])]
+    public function generateLabels(Request $request): Response
+    {
+        // Get count from query parameter, default to 10, max 100
+        $count = (int) $request->query->get('count', 10);
+        $count = max(1, min(100, $count)); // Ensure count is between 1 and 100
+        
+        // Generate labels with random QR codes directly (not tied to tickets)
+        $labels = [];
+        $existingCodes = $this->ticketRepository->findAllCateringQrCodes();
+        
+        for ($i = 0; $i < $count; $i++) {
+            // Generate a unique catering QR code
+            $cateringCode = $this->createUniqueQrCode($existingCodes);
+            $existingCodes[] = $cateringCode; // Add to our tracking array
+            
+            // Add the catering QR code to labels
+            $labels[] = [
+                'id' => $cateringCode,
+                'fullCode' => 'QR-' . $cateringCode  // Just a placeholder, no longer linked to tickets
+            ];
+        }
+        
+        return $this->render('api/catering/labels.html.twig', [
+            'labels' => $labels,
+            'count' => $count
+        ]);
+    }
+    
+    /**
+     * Create a unique 4-character catering QR code
+     */
+    private function createUniqueQrCode(array $existingCodes): string
+    {
+        // Use only uppercase letters and numbers that aren't easily confused
+        $chars = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ'; // removed 0,1,I,O to avoid confusion
+        
+        do {
+            $cateringCode = '';
+            for ($i = 0; $i < 4; $i++) {
+                $cateringCode .= $chars[mt_rand(0, strlen($chars) - 1)];
+            }
+        } while (in_array($cateringCode, $existingCodes));
+        
+        return $cateringCode;
     }
 }

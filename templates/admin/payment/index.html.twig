@@ -68,7 +68,7 @@
                     {% for ticket in tickets %}
                         <tr>
                             <td class="text-nowrap text-monospace text-right">{{ ticket.id }}</td>
-                            <td class="text-nowrap text-monospace">{{ ticket.code }}</td>
+                            <td class="text-nowrap text-monospace">{{ ticket.code }} {% if ticket.cateringQrCode %}(QR: {{ ticket.cateringQrCode }}){% endif %}</td>
                             <td>{% if ticket.shopOrderPosition %} <span class="badge badge-secondary" title="Gekauft"><i class="fas fa-euro-sign"></i></span>{% endif %}</td>
                             <td data-order="{{ ticket.createdAt | date('U') }}">{{ ticket.createdAt | date(dateformat) }}</td>
                         {% if ticket.redeemed %}

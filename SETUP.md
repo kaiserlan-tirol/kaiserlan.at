@@ -27,6 +27,8 @@ We also assume that there is a running [IDM Server](https://github.com/KRRUg/IDM
 (usually listening on localhost on the local server).
 
 ### Database setup
+TLDR: database updates: `bin/console doctrine:schema:update --force --complete`
+
 Login as the PostgreSQL admin user (usually `postgres`) and create a user
 with an according password and create a database for the KLMS instance.
 

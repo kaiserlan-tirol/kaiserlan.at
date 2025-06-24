@@ -38,6 +38,9 @@ class Ticket
 
     #[ORM\OneToOne(inversedBy: 'ticket', cascade: ['persist'])]
     private ?ShopOrderPositionTicket $shopOrderPosition = null;
+    
+    #[ORM\Column(length: 4, nullable: true)]
+    private ?string $cateringQrCode = null;
 
     public function getId(): ?int
     {
@@ -137,5 +140,17 @@ class Ticket
         } else {
             return null;
         }
+    }
+    
+    public function getCateringQrCode(): ?string
+    {
+        return $this->cateringQrCode;
+    }
+    
+    public function setCateringQrCode(?string $cateringQrCode): static
+    {
+        $this->cateringQrCode = $cateringQrCode;
+        
+        return $this;
     }
 }

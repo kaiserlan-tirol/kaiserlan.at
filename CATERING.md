@@ -92,3 +92,15 @@ Example:
   }
 ]
 ```
+
+## QR Code Generation
+
+QR codes are generated separately from tickets and can be assigned manually during check-in. This allows for pre-printing QR codes and handing them out physically.
+
+http://localhost:8002/api/catering/generate-labels?count=10
+
+This generates 10 unique QR codes (default if count parameter is omitted). Each code is a 4-character alphanumeric string, avoiding easily confused characters (0, 1, I, O).
+
+The generated labels are formatted for a 24mm x 53mm label printer in portrait orientation.
+
+During the check-in process, these QR codes can be manually assigned to tickets in the admin interface.

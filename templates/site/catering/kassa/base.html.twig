@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>{% block title %}KaiserLAN Kassa{% endblock %}</title>
+    
+    {% block stylesheets %}
+        {{ encore_entry_link_tags('app') }}
+        <style>
+            /* Kiosk/Tablet optimized styles */
+            body {
+                font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                font-size: 18px;
+                line-height: 1.4;
+                background: linear-gradient(135deg, #4dacff 0%,rgb(0, 123, 230) 100%);
+                min-height: 100vh;
+                margin: 0;
+                padding: 0;
+                -webkit-user-select: none;
+                -moz-user-select: none;
+                -ms-user-select: none;
+                user-select: none;
+                overflow-x: hidden;
+            }
+            
+            .kassa-container {
+                max-width: 100%;
+                min-width: 60vw;
+                min-height: 100vh;
+                padding: 20px;
+                display: flex;
+                flex-direction: column;
+            }
+            
+            .kassa-header {
+                background: rgba(255, 255, 255, 0.95);
+                border-radius: 15px;
+                padding: 20px;
+                margin-bottom: 20px;
+                box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+                backdrop-filter: blur(10px);
+                text-align: center;
+            }
+            
+            .kassa-header h1 {
+                color: #333;
+                margin: 0;
+                font-size: 2.5rem;
+                font-weight: 700;
+            }
+            
+            .kassa-content {
+                flex: 1;
+                background: rgba(255, 255, 255, 0.98);
+                border-radius: 20px;
+                padding: 30px;
+                box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+                backdrop-filter: blur(10px);
+            }
+            
+            .btn-kassa {
+                background: linear-gradient(45deg, #28a745, #20c997);
+                border: none;
+                color: white;
+                font-size: 1.5rem;
+                font-weight: 00;
+                padding: 15px 20px;
+                border-radius: 15px;
+                cursor: pointer;
+                transition: all 0.3s ease;
+                min-height: 20px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                text-decoration: none;
+                box-shadow: 0 4px 15px rgba(40, 167, 69, 0.3);
+            }
+            .btn-kassa i {
+                margin-right: 10px;
+            }
+
+            .btn-kassa:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 8px 25px rgba(40, 167, 69, 0.4);
+                color: white;
+                text-decoration: none;
+            }
+            
+            .btn-kassa:active {
+                transform: translateY(0);
+            }
+            
+            .btn-kassa-secondary {
+                background: linear-gradient(45deg, #6c757d, #495057);
+                box-shadow: 0 4px 15px rgba(108, 117, 125, 0.3);
+            }
+            
+            .btn-kassa-secondary:hover {
+                box-shadow: 0 8px 25px rgba(108, 117, 125, 0.4);
+            }
+            
+            .btn-kassa-danger {
+                background: linear-gradient(45deg, #dc3545, #c82333);
+                box-shadow: 0 4px 15px rgba(220, 53, 69, 0.3);
+            }
+            
+            .btn-kassa-danger:hover {
+                box-shadow: 0 8px 25px rgba(220, 53, 69, 0.4);
+            }
+            
+            .kassa-navigation {
+                display: flex;
+                justify-content: space-between;
+                margin-top: 30px;
+                gap: 20px;
+            }
+            
+            
+            .alert-kassa {
+                padding: 20px;
+                margin: 20px 0;
+                border-radius: 15px;
+                font-size: 1.2rem;
+                font-weight: 500;
+            }
+            
+            .alert-kassa.alert-danger {
+                background: linear-gradient(45deg, #f8d7da, #f5c6cb);
+                border: 2px solid #f1aeb5;
+                color: #721c24;
+            }
+            
+            .alert-kassa.alert-success {
+                background: linear-gradient(45deg, #d4edda, #c3e6cb);
+                border: 2px solid #b6d4c9;
+                color: #155724;
+            }
+
+            @media (min-width: 768px) {
+                .kassa-container {
+                    padding: 40px;
+                }
+                
+                .kassa-header h1 {
+                    font-size: 3rem;
+                }
+                
+            }
+            
+            @media (min-width: 1024px) {
+                .kassa-container {
+                    max-width: 1200px;
+                    margin: 0 auto;
+                    padding: 60px;
+                }
+            }
+        </style>
+    {% endblock %}
+</head>
+<body>
+    <div class="kassa-container">
+        <div class="kassa-header">
+            <h1>
+                <i class="fas fa-utensils"></i>
+                KaiserLAN Kassa
+            </h1>
+        </div>
+        
+        <div class="kassa-content">
+            {% for flash_error in app.flashes('error') %}
+                <div class="alert-kassa alert-danger">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    {{ flash_error }}
+                </div>
+            {% endfor %}
+            
+            {% for flash_success in app.flashes('success') %}
+                <div class="alert-kassa alert-success">
+                    <i class="fas fa-check-circle"></i>
+                    {{ flash_success }}
+                </div>
+            {% endfor %}
+            
+            {% block content %}{% endblock %}
+        </div>
+    </div>
+    
+    {% block javascripts %}
+        {{ encore_entry_script_tags('app') }}
+        {{ encore_entry_script_tags('kassa') }}
+    {% endblock %}
+</body>
+</html>

@@ -1,0 +1,312 @@
+{% extends 'site/catering/kassa/base.html.twig' %}
+
+{% block title %}Kontostand - KaiserLAN Kassa{% endblock %}
+
+{% block content %}
+<div class="text-center">
+    <!-- User info header -->
+    <div style="background: linear-gradient(135deg, rgb(0, 123, 230) 0%,#4dacff 100%); color: white; padding: 30px; border-radius: 15px; margin-bottom: 30px;">
+        <h3 style="margin: 0 0 15px 0; font-size: 2rem;">
+            <i class="fas fa-user-circle" style="margin-right: 10px;"></i>
+            {{ user.nickname }}
+        </h3>
+        <p style="margin: 0 0 10px 0; font-size: 1.1rem; opacity: 0.9;">{{ user.email }}</p>
+        <div style="background: rgba(255,255,255,0.2); padding: 20px; border-radius: 10px; margin-top: 20px;">
+            <h2 style="margin: 0; font-size: 3rem; font-weight: 700;">
+                {{ (current_credit/100) | format_currency('EUR') }}
+            </h2>
+            <p style="margin: 5px 0 0 0; font-size: 1.2rem; opacity: 0.9;">
+                Aktuelles Guthaben
+            </p>
+        </div>
+    </div>
+
+    <!-- Payment Info -->
+    <div style="background: white; padding: 30px; border-radius: 15px; margin-bottom: 30px; text-align: left; box-shadow: 0 4px 15px rgba(0,0,0,0.1);">
+        <h4 style="color: #333; font-size: 1.6rem; margin-bottom: 25px; text-align: center;">
+            <i class="fas fa-info-circle" style="color: #17a2b8; margin-right: 10px;"></i>
+            Guthaben aufladen
+        </h4>
+        
+        <div style="display: grid; gap: 20px;">
+            <div style="padding: 20px; background: #f8f9fa; border-radius: 10px; border-left: 4px solid #0070ba;">
+                <h6 style="color: #333; font-size: 1.2rem; margin-bottom: 10px;">
+                    <i class="fab fa-paypal" style="color: #0070ba; margin-right: 8px;"></i>
+                    PayPal
+                </h6>
+                <p style="color: #666; margin: 0 0 15px 0;">
+                    Lade dein Guthaben direkt mit PayPal auf:
+                </p>
+                <a href="https://paypal.me/kaiserlantirol" target="_blank" 
+                   style="display: inline-block; background: #0070ba; color: white; padding: 12px 20px; border-radius: 8px; text-decoration: none; font-weight: 600;">
+                    <i class="fab fa-paypal" style="margin-right: 8px;"></i>
+                    Jetzt aufladen
+                </a>
+                <p style="color: #999; font-size: 0.9rem; margin-top: 10px;">
+                    <strong>Wichtig:</strong> Verwende als Nachricht: "{{ user.nickname }}, Catering"
+                </p>
+            </div>
+            
+            <div style="padding: 20px; background: #fff3cd; border-radius: 10px; border-left: 4px solid #ffc107;">
+                <h6 style="color: #333; font-size: 1.2rem; margin-bottom: 10px;">
+                    <i class="fas fa-hand-holding-usd" style="color: #ffc107; margin-right: 8px;"></i>
+                    Bar vor Ort
+                </h6>
+                <p style="color: #666; margin: 0;">
+                    Frage einen Admin vor Ort, um dein Guthaben bar aufzuladen.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Transaction History -->
+    {% if transactions|length > 0 %}
+    <div style="background: white; padding: 30px; border-radius: 15px; margin-bottom: 30px; text-align: left; box-shadow: 0 4px 15px rgba(0,0,0,0.1);">
+        <h4 style="color: #333; font-size: 1.6rem; margin-bottom: 25px; text-align: center;">
+            <i class="fas fa-history" style="color: #6c757d; margin-right: 10px;"></i>
+            Letzte Transaktionen
+        </h4>
+        
+        <div style="max-height: 300px; overflow-y: auto;">
+            {% for transaction in transactions|slice(0, 10) %}
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 15px; margin-bottom: 10px; background: #f8f9fa; border-radius: 10px;">
+                <div>
+                    <div style="font-weight: 600; color: #333; margin-bottom: 5px;">
+                        {{ transaction.description }}
+                    </div>
+                    <div style="font-size: 0.9rem; color: #666;">
+                        {{ transaction.timestamp|date('d.m.Y H:i') }}
+                    </div>
+                </div>
+                <div style="text-align: right;">
+                    <div style="font-size: 1.2rem; font-weight: 700; color: {% if transaction.amount >= 0 %}#28a745{% else %}#dc3545{% endif %};">
+                        {% if transaction.amount >= 0 %}+{% endif %}{{ (transaction.amount/100) | format_currency('EUR') }}
+                    </div>
+                    <div style="font-size: 0.8rem; color: #666;">
+                        {% if transaction.type == 'payment_received' %}
+                            <i class="fas fa-plus-circle"></i> Einzahlung
+                        {% elseif transaction.type == 'order_payment' %}
+                            <i class="fas fa-shopping-cart"></i> Kauf
+                        {% elseif transaction.description starts with 'Kassa Bestellung' or transaction.description starts with 'Bezahlung für Bestellung' %}
+                            <i class="fas fa-shopping-cart"></i> Kauf
+                        {% else %}
+                            <i class="fas fa-exchange-alt"></i> Anpassung
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Navigation -->
+    <div class="kassa-navigation">
+        <a href="{{ path('catering_kassa_index') }}" class="btn-kassa btn-kassa-danger">
+            <i class="fas fa-times"></i>
+            Abbrechen
+        </a>
+        <a href="{{ path('catering_kassa_products', {userId: user.uuid}) }}" class="btn-kassa">
+            <i class="fas fa-arrow-left"></i>
+            Zurück zu Produkten
+        </a>
+    </div>
+</div>
+
+<!-- Toast container for notifications -->
+<div class="toast-container" id="toast-container"></div>
+
+<style>
+/* Toast notification styles */
+.toast-container {
+    position: fixed;
+    bottom: 30px;
+    right: 30px;
+    z-index: 9999;
+}
+
+.toast {
+    background: rgba(0, 0, 0, 0.85);
+    color: white;
+    padding: 15px 25px;
+    border-radius: 8px;
+    margin-bottom: 10px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+    display: flex;
+    align-items: center;
+    animation: slideIn 0.3s, fadeOut 0.5s 9.5s;
+    max-width: 350px;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.toast.show {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.toast-icon {
+    margin-right: 15px;
+    font-size: 1.2rem;
+    color: #ffcc00;
+}
+
+.toast-content {
+    flex: 1;
+}
+
+.toast-title {
+    font-weight: 600;
+    margin-bottom: 5px;
+    font-size: 1.1rem;
+}
+
+.toast-body {
+    font-size: 0.9rem;
+    opacity: 0.9;
+}
+
+.toast-action {
+    background: #007be6;
+    color: white;
+    border: none;
+    padding: 5px 15px;
+    border-radius: 4px;
+    margin-top: 8px;
+    cursor: pointer;
+    font-weight: 500;
+    font-size: 0.9rem;
+}
+
+@keyframes slideIn {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+@keyframes fadeOut {
+    from {
+        opacity: 1;
+    }
+    to {
+        opacity: 0;
+    }
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Session timeout management
+    let inactivityTimer;
+    let warningToastTimer;
+    const sessionTimeout = 2 * 60 * 1000; // 2 minutes
+    const warningTime = 10 * 1000; // Show warning 10 seconds before timeout
+    
+    // Function to show toast notification
+    function showToast(title, message, actionText = null, actionCallback = null) {
+        const toastContainer = document.getElementById('toast-container');
+        
+        // Create toast element
+        const toast = document.createElement('div');
+        toast.className = 'toast';
+        
+        // Create toast content
+        let toastHTML = `
+            <div class="toast-icon">
+                <i class="fas fa-clock"></i>
+            </div>
+            <div class="toast-content">
+                <div class="toast-title">${title}</div>
+                <div class="toast-body">${message}</div>
+        `;
+        
+        // Add action button if provided
+        if (actionText && actionCallback) {
+            toastHTML += `<button class="toast-action">${actionText}</button>`;
+        }
+        
+        toastHTML += `</div>`;
+        toast.innerHTML = toastHTML;
+        
+        // Add to container
+        toastContainer.appendChild(toast);
+        
+        // Action button click handler
+        if (actionText && actionCallback) {
+            const actionButton = toast.querySelector('.toast-action');
+            if (actionButton) {
+                actionButton.addEventListener('click', () => {
+                    actionCallback();
+                    removeToast();
+                });
+            }
+        }
+        
+        // Show toast with animation
+        setTimeout(() => {
+            toast.classList.add('show');
+        }, 10);
+        
+        // Function to remove the toast
+        function removeToast() {
+            toast.classList.remove('show');
+            setTimeout(() => {
+                if (toast.parentNode === toastContainer) {
+                    toastContainer.removeChild(toast);
+                }
+            }, 300);
+        }
+        
+        // Auto remove after 10 seconds if not closed already
+        setTimeout(removeToast, 10000);
+        
+        return {
+            close: removeToast
+        };
+    }
+    
+    function resetInactivityTimer() {
+        // Clear existing timers
+        clearTimeout(inactivityTimer);
+        clearTimeout(warningToastTimer);
+        
+        // Set new timers
+        warningToastTimer = setTimeout(() => {
+            const toast = showToast(
+                "Session läuft ab", 
+                "Ihre Sitzung läuft in 10 Sekunden ab.", 
+                "Sitzung verlängern", 
+                () => {
+                    // Reset the timer when user clicks the action button
+                    resetInactivityTimer();
+                }
+            );
+        }, sessionTimeout - warningTime);
+        
+        inactivityTimer = setTimeout(() => {
+            // Show final toast before redirecting
+            showToast("Session abgelaufen", "Sie werden zur Startseite weitergeleitet...");
+            
+            // Redirect after a short delay
+            setTimeout(() => {
+                window.location.href = '{{ path("catering_kassa_index") }}';
+            }, 2000);
+        }, sessionTimeout);
+    }
+    
+    // Reset timer on any activity
+    ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart', 'click'].forEach(event => {
+        document.addEventListener(event, resetInactivityTimer, true);
+    });
+    
+    // Start the session timeout timer
+    resetInactivityTimer();
+});
+</script>
+
+{% endblock %}

@@ -103,6 +103,8 @@ class SettingService
         'lan.party.start' => [self::TB_DESCRIPTION => 'Beginn der Lanparty', self::TB_TYPE => SettingType::DateTimeLocal],
         'lan.party.end' => [self::TB_DESCRIPTION => 'Ende der Lanparty', self::TB_TYPE => SettingType::DateTimeLocal],
         'lan.checklist' => [self::TB_DESCRIPTION => 'Checklist Einträge. Zeilen Bindestrich davor werden als Überschrift ausgegeben.', self::TB_TYPE => SettingType::HTML],
+
+        'catering.allow_negative_credit' => [self::TB_DESCRIPTION => 'Negatives Catering-Guthaben erlauben', self::TB_TYPE => SettingType::Bool],
     ];
 
     private readonly LoggerInterface $logger;

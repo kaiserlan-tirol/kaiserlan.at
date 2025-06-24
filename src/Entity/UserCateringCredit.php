@@ -72,7 +72,7 @@ class UserCateringCredit
 
     public function deductCredit(int $amount): static
     {
-        $this->amount = max(0, $this->amount - $amount);
+        $this->amount = $this->amount - $amount; // Allow negative balance
         $this->updatedAt = new DateTimeImmutable();
 
         return $this;

@@ -148,7 +148,17 @@ class CateringController extends AbstractController {
         ]);
         $form->handleRequest($request);
         if ($form->isSubmitted() && $form->isValid()) {
-            $savedProduct = $this->cateringService->saveProduct($form->getData());
+            $product = $form->getData();
+            
+            // Handle image upload if present
+            $imageFile = $form->get('image')->getData();
+            if ($imageFile) {
+                // We're not using images in the Kassa frontend for now,
+                // so we'll just set the image property to a placeholder
+                $product->setImage('no-image.png');
+            }
+            
+            $savedProduct = $this->cateringService->saveProduct($product);
             $this->addFlash('success', "Produkt wurde erfolgreich angelegt.");
             return $this->redirectToRoute('admin_catering_product');
         }
@@ -176,6 +186,15 @@ class CateringController extends AbstractController {
         if ($form->isSubmitted()) {
             if ($form->isValid()) {
                 $formData = $form->getData();
+                
+                // Handle image upload if present
+                $imageFile = $form->get('image')->getData();
+                if ($imageFile) {
+                    // We're not using images in the Kassa frontend for now,
+                    // so we'll just set the image property to a placeholder
+                    $formData->setImage('no-image.png');
+                }
+                
                 $savedProduct = $this->cateringService->saveProduct($formData);
                 
                 $this->addFlash('success', "Änderung an Produkt {$savedProduct->getId()} erfolgreich.");
@@ -638,13 +657,9 @@ class CateringController extends AbstractController {
                     $this->cateringService->addUserCredit($user, $adjustmentAmount, $note);
                     $this->addFlash('success', sprintf('%.2f € wurden dem Guthaben hinzugefügt.', $adjustmentAmount / 100));
                 } else {
-                    // Deduct credit
-                    $success = $this->cateringService->deductUserCredit($user, abs($adjustmentAmount), null);
-                    if ($success) {
-                        $this->addFlash('success', sprintf('%.2f € wurden vom Guthaben abgezogen.', abs($adjustmentAmount) / 100));
-                    } else {
-                        $this->addFlash('error', 'Nicht genügend Guthaben verfügbar.');
-                    }
+                    // Deduct credit (always succeeds as negative balances are allowed)
+                    $this->cateringService->deductUserCredit($user, abs($adjustmentAmount), null, $note);
+                    $this->addFlash('success', sprintf('%.2f € wurden vom Guthaben abgezogen.', abs($adjustmentAmount) / 100));
                 }
                 
                 // Apply credit to open orders if requested
@@ -742,12 +757,8 @@ class CateringController extends AbstractController {
                         
                     case 'credit_deduct':
                         // Deduct credit - pass null as order and the note as fourth parameter
-                        $success = $this->cateringService->deductUserCredit($user, $amount, null, $note ?: 'Manuelle Guthabenanpassung');
-                        if ($success) {
-                            $this->addFlash('success', sprintf('%.2f € wurden vom Guthaben abgezogen.', $amount / 100));
-                        } else {
-                            $this->addFlash('error', 'Nicht genügend Guthaben verfügbar.');
-                        }
+                        $this->cateringService->deductUserCredit($user, $amount, null, $note ?: 'Manuelle Guthabenanpassung');
+                        $this->addFlash('success', sprintf('%.2f € wurden vom Guthaben abgezogen.', $amount / 100));
                         break;
                         
                     default:

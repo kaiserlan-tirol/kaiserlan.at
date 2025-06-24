@@ -10,6 +10,7 @@ use App\Service\ShopService;
 use App\Service\TicketService;
 use App\Service\TicketState;
 use App\Service\UserService;
+use Doctrine\ORM\EntityManagerInterface;
 use Ramsey\Uuid\UuidInterface;
 
 use Sensio\Bundle\FrameworkExtraBundle\Configuration\IsGranted;
@@ -28,14 +29,17 @@ class PaymentController extends AbstractController
     private readonly TicketService $ticketService;
     private readonly UserService $userService;
     private readonly ShopService $shopService;
+    private readonly EntityManagerInterface $em;
 
     public function __construct(TicketService $ticketService,
                                 UserService   $userService,
-                                ShopService   $shopService)
+                                ShopService   $shopService,
+                                EntityManagerInterface $em)
     {
         $this->ticketService = $ticketService;
         $this->userService = $userService;
         $this->shopService = $shopService;
+        $this->em = $em;
         // $this->userRepo = $manager->getRepository(User::class);
     }
 
@@ -59,11 +63,31 @@ class PaymentController extends AbstractController
                 if ($can_delete_ticket) $form->add('delete', SubmitType::class);
                 break;
             case TicketState::REDEEMED:
+                $form->add('cateringQrCode', \Symfony\Component\Form\Extension\Core\Type\TextType::class, [
+                    'required' => false,
+                    'label' => 'Catering QR Code',
+                    'data' => $ticket->getCateringQrCode(),
+                    'attr' => [
+                        'class' => 'form-control', 
+                        'placeholder' => 'Enter Catering QR Code',
+                        'style' => 'text-transform: uppercase;'
+                    ]
+                ]);
                 $form->add('unassign', SubmitType::class);
                 $form->add('punch', SubmitType::class);
                 if ($can_delete_ticket) $form->add('delete', SubmitType::class);
                 break;
             case TicketState::PUNCHED:
+                $form->add('cateringQrCode', \Symfony\Component\Form\Extension\Core\Type\TextType::class, [
+                    'required' => false,
+                    'label' => 'Catering QR Code',
+                    'data' => $ticket->getCateringQrCode(),
+                    'attr' => [
+                        'class' => 'form-control', 
+                        'placeholder' => 'Enter Catering QR Code',
+                        'style' => 'text-transform: uppercase;'
+                    ]
+                ]);
                 $form->add('unpunch', SubmitType::class);
                 $form->add('unassign', SubmitType::class);
                 if ($can_delete_ticket) $form->add('delete', SubmitType::class);
@@ -188,6 +212,16 @@ class PaymentController extends AbstractController
                         $this->ticketService->unassignTicket($ticket);
                         break;
                     case self::clickedIfExists($form, 'punch'):
+                        // Check if catering QR code is entered for punching
+                        if ($form->has('cateringQrCode')) {
+                            $cateringQrCode = strtoupper($form->get('cateringQrCode')->getData());
+                            if (empty($cateringQrCode)) {
+                                $error = "Catering QR Code ist erforderlich.";
+                                break;
+                            }
+                            $ticket->setCateringQrCode($cateringQrCode);
+                            $this->em->persist($ticket);
+                        }
                         $this->ticketService->punchTicket($ticket);
                         break;
                     case self::clickedIfExists($form, 'unpunch'):

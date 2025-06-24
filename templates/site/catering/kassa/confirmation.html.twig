@@ -1,0 +1,119 @@
+{% extends 'site/catering/kassa/base.html.twig' %}
+
+{% block title %}Bestellung erfolgreich - KaiserLAN Kassa{% endblock %}
+
+{% block content %}
+<div id="confirmation-page">
+    <!-- Success header -->
+    <div style="background: linear-gradient(45deg, #28a745, #20c997); color: white; padding: 30px; border-radius: 15px; margin-bottom: 30px; text-align: center;">
+        <div style="font-size: 5rem; margin-bottom: 20px;">
+            <i class="fas fa-check-circle animated-success"></i>
+        </div>
+        <h3 style="margin: 0 0 10px 0; font-size: 1.8rem;">
+            Danke für deine Bestellung!
+        </h3>
+        <p style="margin: 0; font-size: 1.2rem; opacity: 0.9;">
+            Bestellung #{{ orderId }} wurde erfolgreich abgeschlossen
+        </p>
+    </div>
+
+    <!-- User info -->
+    <div style="background: #f8f9fa; padding: 20px; border-radius: 15px; margin-bottom: 30px; text-align: center; border-left: 5px solid #20c997;">
+        <h4 style="margin: 0 0 10px 0; font-size: 1.4rem; color: #333;">
+            <i class="fas fa-user-circle" style="margin-right: 10px;"></i>
+            {{ user.nickname }}
+        </h4>
+    </div>
+
+    <!-- Order summary -->
+    <div style="background: white; padding: 25px; border-radius: 15px; margin-bottom: 30px; box-shadow: 0 4px 15px rgba(0,0,0,0.05);">
+        <h4 style="color: #333; margin-bottom: 20px; text-align: center; border-bottom: 2px solid #f8f9fa; padding-bottom: 15px;">
+            <i class="fas fa-receipt" style="margin-right: 10px;"></i>
+            Bestellübersicht
+        </h4>
+        
+        <div style="display: flex; justify-content: space-between; align-items: center; padding: 15px 0; border-bottom: 1px solid #eee;">
+            <span style="font-size: 1.2rem; font-weight: 500;">Bestellsumme:</span>
+            <span style="font-size: 1.3rem; font-weight: 700; color: #dc3545;">{{ (total/100) | format_currency('EUR') }}</span>
+        </div>
+        
+        <div style="display: flex; justify-content: space-between; align-items: center; padding: 15px 0; border-bottom: 1px solid #eee;">
+            <span style="font-size: 1.2rem; font-weight: 500;">Dein aktueller Saldo:</span>
+            <span style="font-size: 1.3rem; font-weight: 700;">{{ (current_credit/100) | format_currency('EUR') }}</span>
+        </div>
+    </div>
+
+    <!-- Countdown -->
+    <div style="text-align: center; padding: 25px; background: #f8f9fa; border-radius: 15px; position: relative; overflow: hidden;">
+        <div class="pulse-bg"></div>
+        <p style="font-size: 1.4rem; margin-bottom: 20px; position: relative;">
+            <i class="fas fa-clock" style="color: #007bff;"></i> 
+            Zurück zur Startseite in <span id="countdown" style="font-weight: 700; color: #dc3545;">7</span> Sekunden
+        </p>
+        <a href="{{ path('catering_kassa_index') }}" class="btn-kassa" style="position: relative;">
+            <i class="fas fa-home"></i> Sofort zur Startseite
+        </a>
+    </div>
+</div>
+
+<style>
+.animated-success {
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0% {
+        transform: scale(1);
+        opacity: 1;
+    }
+    50% {
+        transform: scale(1.1);
+        opacity: 0.8;
+    }
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+.pulse-bg {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: radial-gradient(circle, rgba(0,123,255,0.1) 0%, rgba(255,255,255,0) 70%);
+    animation: pulse-bg 2s infinite;
+    z-index: 0;
+}
+
+@keyframes pulse-bg {
+    0% {
+        opacity: 0.3;
+    }
+    50% {
+        opacity: 0.7;
+    }
+    100% {
+        opacity: 0.3;
+    }
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    let seconds = 7;
+    const countdownElement = document.getElementById('countdown');
+    
+    const interval = setInterval(function() {
+        seconds--;
+        countdownElement.textContent = seconds;
+        
+        if (seconds <= 0) {
+            clearInterval(interval);
+            window.location.href = "{{ path('catering_kassa_index') }}";
+        }
+    }, 1000);
+});
+</script>
+{% endblock %}

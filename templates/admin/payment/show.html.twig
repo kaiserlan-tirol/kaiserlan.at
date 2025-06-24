@@ -38,6 +38,14 @@
                             <span class="d-inline-block text-muted">nicht eingelöst</span>
                         {% endif %}
                     </p>
+                    <p>
+                        <i class="fas fa-qrcode fa-fw mr-2" title="Catering QR Code"></i>
+                        {% if ticket.cateringQrCode is not empty %}
+                            <span class="d-inline-block text-monospace">{{ ticket.cateringQrCode }}</span>
+                        {% else %}
+                            <span class="d-inline-block text-muted">kein Catering QR Code</span>
+                        {% endif %}
+                    </p>
 {#
             <div class="d-flex justify-content-between w-100 pb-3">
                 <div class="py-1">

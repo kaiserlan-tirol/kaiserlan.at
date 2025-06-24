@@ -8,6 +8,7 @@ use App\Service\ShopService;
 use Symfony\Bridge\Doctrine\Form\Type\EntityType;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\CheckboxType;
+use Symfony\Component\Form\Extension\Core\Type\FileType;
 use Symfony\Component\Form\Extension\Core\Type\IntegerType;
 use Symfony\Component\Form\Extension\Core\Type\MoneyType;
 use Symfony\Component\Form\Extension\Core\Type\TextareaType;
@@ -28,6 +29,22 @@ class CateringProductType extends AbstractType
             ->add('name', TextType::class, ['label' => 'Name'])
             ->add('price', MoneyType::class, ['label' => 'Preis', 'divisor' => 100])
             ->add('active', CheckboxType::class, ['label' => 'Aktiv', 'required' => false])
+            ->add('image', FileType::class, [
+                'label' => 'Produktbild',
+                'required' => false,
+                'mapped' => false,
+                'constraints' => [
+                    new Assert\Image([
+                        'maxSize' => '2M',
+                        'mimeTypes' => [
+                            'image/jpeg',
+                            'image/png',
+                        ],
+                        'mimeTypesMessage' => 'Bitte lade ein gültiges Bild hoch (JPG, PNG)',
+                    ])
+                ],
+                'help' => 'Wähle ein Bild aus (optional, max. 2MB, PNG oder JPG)',
+            ])
             ->add('includedInAddons', EntityType::class, [
                 'class' => ShopAddon::class,
                 'choice_label' => 'name',

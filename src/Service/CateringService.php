@@ -199,8 +199,14 @@ class CateringService
         if (!$this->checkProductsActive($order)) {
             throw new OrderLifecycleException($order);
         }
-
-        $result = $this->setState($order, CateringOrderStatus::Created);
+        
+        // Special handling for free orders - set to Paid directly if total is 0
+        if ($order->calculateTotal() == 0) {
+            $result = $this->setState($order, CateringOrderStatus::Paid);
+        } else {
+            $result = $this->setState($order, CateringOrderStatus::Created);
+        }
+        
         if (!$result) {
             throw new OrderLifecycleException($order);
         }
@@ -241,7 +247,7 @@ class CateringService
     private function setState(CateringOrder $order, CateringOrderStatus $status): bool
     {
         $valid_transfer = match ($order->getStatus()) {
-            null => $status == CateringOrderStatus::Created,
+            null => $status == CateringOrderStatus::Created || $status == CateringOrderStatus::Paid, // Allow setting directly to Paid for free orders
             CateringOrderStatus::Created => $status == CateringOrderStatus::Paid || $status == CateringOrderStatus::Canceled || $status == CateringOrderStatus::PaymentSent,
             CateringOrderStatus::PaymentSent => $status == CateringOrderStatus::Paid || $status == CateringOrderStatus::Canceled || $status == CateringOrderStatus::Created,
             CateringOrderStatus::Paid => $status == CateringOrderStatus::Refunded || $status == CateringOrderStatus::Created, // Allow reverting to Created
@@ -252,11 +258,7 @@ class CateringService
             return false;
         }
 
-        $new_state = match ($order->getStatus()) {
-            // if the order has 0 amount, it is fulfilled immediately
-            null => $order->calculateTotal() == 0 ? CateringOrderStatus::Paid : CateringOrderStatus::Created,
-            default => $status,
-        };
+        $new_state = $status; // Use the requested status directly
 
         $order->setStatus($new_state);
         $this->em->persist($order);
@@ -379,6 +381,11 @@ class CateringService
                 $managedProduct->setActive($product->isActive());
                 $managedProduct->setProductCode($product->getProductCode());
                 $managedProduct->setSortIndex($product->getSortIndex());
+                
+                // Handle image property if set
+                if ($product->getImage()) {
+                    $managedProduct->setImage($product->getImage());
+                }
                 
                 // Handle addon relationships - we need to carefully update the collection
                 // First, remove all current relationships that are not in the new collection
@@ -652,10 +659,13 @@ class CateringService
         $uuid = $user instanceof User ? $user->getUuid() : $user;
         $credit = $this->creditRepository->findByUser($uuid);
         
-        if (!$credit || $credit->getAmount() < $amount) {
-            return false;
+        // Create credit entity if it doesn't exist yet
+        if (!$credit) {
+            $credit = new UserCateringCredit();
+            $credit->setUser($uuid);
         }
         
+        // Always allow deduction (potentially going into negative balance)
         $credit->deductCredit($amount);
         $this->creditRepository->save($credit);
         

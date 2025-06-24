@@ -178,6 +178,11 @@ class CateringOrder implements OrderInterface
         return $sum;
     }
 
+    public function getTotalPrice(): int
+    {
+        return $this->calculateTotal();
+    }
+
     public function isEmpty(): bool
     {
         return count($this->cateringOrderPositions) == 0;
