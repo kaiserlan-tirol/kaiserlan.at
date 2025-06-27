@@ -4,22 +4,28 @@
 
 {% block main %}
 <div class="container">
-    <div class="row">
+    <div class="row mb-4">
         <div class="col-12">
             <h1>Catering Speisekarte</h1>
             
+            {% if isLoggedIn %}
             <div class="mb-3">
                 <a href="{{ path('catering_orders') }}" class="btn btn-secondary">
-                    <i class="fas fa-arrow-left"></i> Zurück zu Bestellungen
+                    <i class="fas fa-arrow-left"></i> Zu deinen Bestellungen
                 </a>
             </div>
+            {% endif %}
+
+            <p class="lead">
+                Hier findest du alle angebotenen Catering-Produkte. Wir beziehen hauptsächlich regionale Produkte, unsere Fleischprodukte von der Metzgerei Huber Kitzbühel, Getränke vom Huber Bräu und lokalen Bäckereien und Unternehmen.
+            </p>
             
             {% if flatProducts | length > 0 %}
                 <div class="card mb-4">
                     <div class="card-header bg-success text-white">
                         <h4 class="mb-0">
                             <i class="fas fa-check-circle"></i> 
-                            Inkludiert in deiner Flatrate
+                            Inkludiert in {% if isLoggedIn %}deiner{% else %}der{% endif %} Flatrate
                         </h4>
                     </div>
                     <div class="card-body">
@@ -32,9 +38,20 @@
                                             {% if product.description %}
                                                 <p class="card-text">{{ product.description }}</p>
                                             {% endif %}
-                                            <div class="text-success">
+                                            <div class="text-success mb-2">
                                                 <strong><i class="fas fa-check"></i> Kostenlos</strong>
                                             </div>
+                                            {% if product.includedInAddons|length > 0 %}
+                                                <div class="mt-2 pt-2 border-top">
+                                                    <small class="text-muted">Inkludiert in:
+                                                        <ul class="list-unstyled mb-0">
+                                                        {% for addon in product.includedInAddons %}
+                                                            <li><i class="fas fa-tag fa-sm"></i> {{ addon.name }}</li>
+                                                        {% endfor %}
+                                                        </ul>
+                                                    </small>
+                                                </div>
+                                            {% endif %}
                                         </div>
                                     </div>
                                 </div>
@@ -48,32 +65,35 @@
                 <div class="card">
                     <div class="card-header">
                         <h4 class="mb-0">
-                            <i class="fas fa-euro-sign"></i> 
-                            Kostenpflichtige Artikel
+                            Produkte
                         </h4>
                     </div>
                     <div class="card-body">
                         <div class="row">
-                            {% for product in paidProducts %}
-                                <div class="col-md-6 col-lg-4 mb-3">
-                                    <div class="card h-100">
-                                        <div class="card-body">
-                                            <h6 class="card-title">{{ product.name }}</h6>
-                                            {% if product.description %}
-                                                <p class="card-text">{{ product.description }}</p>
+                        <table class="table table-striped">
+                            <tbody>
+                                <tr>
+                                    {% for product in paidProducts %}
+                                    <tr class="product-row" data-product-id="{{ product.id }}" data-price="{{ product.price }}">
+                                        <td>
+                                            <strong>{{ product.name }}</strong> {% if product.includedInAddons|length > 0 %}
+                                                {% for addon in product.includedInAddons %}
+                                                    <div class="badge badge-success mb-2">
+                                                        {{ addon.name }}
+                                                    </div>
+                                                {% endfor %}
                                             {% endif %}
-                                            <div class="d-flex justify-content-between align-items-center">
-                                                <div>
-                                                    <strong class="text-primary">{{ (product.price/100) | format_currency('EUR') }}</strong>
-                                                </div>
-                                                {% if product.productCode %}
-                                                    <small class="text-muted">Code: {{ product.productCode }}</small>
-                                                {% endif %}
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            {% endfor %}
+                                            {% if product.description %}
+                                                <div class="small text-muted">{{ product.description }}</div>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <span class="product-price">{{ (product.price/100) | format_currency('EUR') }}</span>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
                         </div>
                     </div>
                 </div>
@@ -85,7 +105,16 @@
                     Derzeit sind keine Catering-Produkte verfügbar.
                 </div>
             {% endif %}
+            
         </div>
     </div>
 </div>
+<style>
+    .product-row {
+        font-size: 1.2rem;
+    }
+    .card-body {
+        padding: 1rem;
+    }
+</style>
 {% endblock %}

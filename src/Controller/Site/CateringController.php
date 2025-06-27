@@ -15,7 +15,6 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
 
-#[IsGranted('IS_AUTHENTICATED_REMEMBERED')]
 #[Route(path: '/catering', name: 'catering')]
 class CateringController extends AbstractController
 {
@@ -36,6 +35,7 @@ class CateringController extends AbstractController
     private const CSRF_TOKEN_CANCEL = 'cancelCateringOrder';
     private const CSRF_TOKEN_PAY = 'payCateringOrders';
 
+    #[IsGranted('IS_AUTHENTICATED_REMEMBERED')]
     #[Route(path: '/order', name: '_order')]
     public function order(Request $request): Response
     {
@@ -90,6 +90,7 @@ class CateringController extends AbstractController
         ]);
     }
 
+    #[IsGranted('IS_AUTHENTICATED_REMEMBERED')]
     #[Route(path: '/orders', name: '_orders', methods: ['GET', 'POST'])]
     public function orders(Request $request): Response
     {
@@ -152,21 +153,34 @@ class CateringController extends AbstractController
     #[Route(path: '/menu', name: '_menu')]
     public function menu(): Response
     {
-        /** @var User $user */
-        $user = $this->getUser()->getUser();
+        // This route is public, check if user is logged in
+        $user = $this->getUser() ? $this->getUser()->getUser() : null;
+        $isLoggedIn = ($user !== null);
         
         $products = $this->cateringService->getProducts();
-        $flatProducts = $this->cateringService->getFlatrateProducts($user);
-        $paidProducts = $this->cateringService->getPaidProducts($user);
+        
+        // Handle both logged-in and anonymous users
+        if ($isLoggedIn) {
+            $flatProducts = $this->cateringService->getFlatrateProducts($user);
+            $paidProducts = $this->cateringService->getPaidProducts($user);
+            $userHasFlatrate = $this->cateringService->userHasFlatrate($user);
+        } else {
+            // For anonymous users, we only need to show all products
+            $flatProducts = [];
+            $paidProducts = $products;
+            $userHasFlatrate = false;
+        }
 
         return $this->render('site/catering/menu.html.twig', [
             'products' => $products,
             'flatProducts' => $flatProducts,
             'paidProducts' => $paidProducts,
-            'userHasFlatrate' => $this->cateringService->userHasFlatrate($user),
+            'userHasFlatrate' => $userHasFlatrate,
+            'isLoggedIn' => $isLoggedIn,
         ]);
     }
 
+    #[IsGranted('IS_AUTHENTICATED_REMEMBERED')]
     #[Route(path: '/pay', name: '_pay', methods: ['POST'])]
     public function pay(Request $request): Response
     {
@@ -219,6 +233,7 @@ class CateringController extends AbstractController
         return $this->redirectToRoute('catering_orders');
     }
     
+    #[IsGranted('IS_AUTHENTICATED_REMEMBERED')]
     #[Route(path: '/payment-sent', name: '_payment_sent', methods: ['POST'])]
     public function markPaymentSent(Request $request): Response
     {
@@ -269,6 +284,7 @@ class CateringController extends AbstractController
         return $this->redirectToRoute('catering_orders');
     }
     
+    #[IsGranted('IS_AUTHENTICATED_REMEMBERED')]
     #[Route(path: '/credit', name: '_credit')]
     public function userCredit(): Response
     {

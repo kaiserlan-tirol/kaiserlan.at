@@ -362,9 +362,9 @@ class CateringService
     public function allocProduct(): CateringProduct
     {
         return (new CateringProduct())
-            ->setActive(false)
-            ->setPrice(100)
-            ->setName('Neues Produkt')
+            ->setActive(true)
+            ->setPrice(200)
+            ->setName('')
             ->setDescription('');
     }
 
