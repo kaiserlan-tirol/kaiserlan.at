@@ -40,7 +40,6 @@ class PaymentController extends AbstractController
         $this->userService = $userService;
         $this->shopService = $shopService;
         $this->em = $em;
-        // $this->userRepo = $manager->getRepository(User::class);
     }
 
     private function createTicketCreateForm(string $action = "", bool $forceUser = false): FormInterface
@@ -110,30 +109,6 @@ class PaymentController extends AbstractController
         
         // Get all available addons for the filter dropdown
         $addons = $this->shopService->getAddons(all: true);
-/*
-        $gamers = $this->gamerService->getGamers();
-        $printDogTags = intval($request->query->get('dogtags')) === 1;
-        if ($printDogTags) {
-
-            $dogtagGamers = array_map(fn ($g) => [
-              'id' => $g['user']->getId(),
-              'uuid' => $g['user']->getUuid()->toString(),
-              'paid' => $g['status']->hasPaid(),
-              'registered' => $g['status']->getRegistered(),
-              'nickname' => $g['user']->getNickname(),
-            ], $gamers);
-
-            usort($dogtagGamers, function ($a, $b) {
-              return $b['registered'] <=> $a['registered'];
-            });
-
-            $dogtagGamers = array_reverse($dogtagGamers);
-
-            return $this->render('admin/payment/dogtags.html.twig', [
-                'gamers' => $dogtagGamers,
-            ]);
-        }
-*/
 
         return $this->render('admin/payment/index.html.twig', [
             'tickets' => $tickets,
@@ -230,14 +205,6 @@ class PaymentController extends AbstractController
                     case self::clickedIfExists($form, 'delete'):
                         $this->ticketService->deleteTicket($ticket);
                         break;
-                        /*
-                  case self::clickedIfExists($form, 'pay_toastflat'):
-                    $this->ticketService->gamerPayToastflat($user);
-                    break;
-                  case self::clickedIfExists($form, 'unpay_toastflat'):
-                    $this->gamerService->gamerUnPayToastflat($user);
-                    break;
-                        */
                     default:
                         $this->addFlash('error', "Aktion konnte nicht durchgeführt werden");
                         return $this->redirectToRoute('admin_payment');

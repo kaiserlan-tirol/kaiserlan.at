@@ -119,6 +119,12 @@ class User
     #[Groups(['read'])]
     private Collection|array $clans = [];
 
+    #[Groups(['read', 'write'])]
+    private ?array $paypalEmails = null;
+
+    #[Groups(['read', 'write'])]
+    private ?array $ibanNumbers = null;
+
     public function getId(): ?int
     {
         return $this->id;
@@ -453,5 +459,61 @@ class User
         $this->clans = $clans;
 
         return $this;
+    }
+
+    public function getPaypalEmails(): ?array
+    {
+        return $this->paypalEmails ?? [];
+    }
+
+    public function setPaypalEmails(?array $paypalEmails): self
+    {
+        $this->paypalEmails = $paypalEmails;
+
+        return $this;
+    }
+
+    public function addPaypalEmail(string $email): self
+    {
+        $emails = $this->getPaypalEmails();
+        if (!in_array($email, $emails)) {
+            $emails[] = $email;
+            $this->setPaypalEmails($emails);
+        }
+
+        return $this;
+    }
+
+    public function hasPaypalEmail(string $email): bool
+    {
+        return in_array($email, $this->getPaypalEmails());
+    }
+
+    public function getIbanNumbers(): ?array
+    {
+        return $this->ibanNumbers ?? [];
+    }
+
+    public function setIbanNumbers(?array $ibanNumbers): self
+    {
+        $this->ibanNumbers = $ibanNumbers;
+
+        return $this;
+    }
+
+    public function addIbanNumber(string $iban): self
+    {
+        $ibans = $this->getIbanNumbers();
+        if (!in_array($iban, $ibans)) {
+            $ibans[] = $iban;
+            $this->setIbanNumbers($ibans);
+        }
+
+        return $this;
+    }
+
+    public function hasIbanNumber(string $iban): bool
+    {
+        return in_array($iban, $this->getIbanNumbers());
     }
 }

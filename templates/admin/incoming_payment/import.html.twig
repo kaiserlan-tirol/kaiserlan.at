@@ -1,0 +1,104 @@
+{% extends 'admin/adminBase.html.twig' %}
+
+{% block siteheading %}Zahlungen importieren{% endblock %}
+
+{% block main %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="card-title mb-0">Zahlungen importieren</h5>
+                    <a href="{{ path('admin_incoming_payment') }}" class="btn btn-secondary">
+                        <i class="fas fa-arrow-left"></i> Zurück
+                    </a>
+                </div>
+                <div class="card-body">
+                    {{ form_start(form) }}
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                {{ form_label(form.source, 'Zahlungsquelle') }}
+                                {{ form_widget(form.source, {'attr': {'class': 'form-control'}}) }}
+                                {{ form_errors(form.source) }}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-12">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h6 class="card-title mb-0">Import-Optionen</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <h6>Datei-Import</h6>
+                                            <div class="form-group">
+                                                {{ form_label(form.file, 'CSV-Datei') }}
+                                                {{ form_widget(form.file, {'attr': {'class': 'form-control'}}) }}
+                                                {{ form_errors(form.file) }}
+                                                <small class="form-text text-muted">
+                                                    Unterstützte Formate: CSV, TXT (max. 10MB)
+                                                </small>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <h6>Manuelle Eingabe</h6>
+                                            <div class="form-group">
+                                                {{ form_label(form.amount, 'Betrag') }}
+                                                {{ form_widget(form.amount, {'attr': {'class': 'form-control'}}) }}
+                                                {{ form_errors(form.amount) }}
+                                            </div>
+                                            <div class="form-group">
+                                                {{ form_label(form.description, 'Beschreibung') }}
+                                                {{ form_widget(form.description, {'attr': {'class': 'form-control'}}) }}
+                                                {{ form_errors(form.description) }}
+                                            </div>
+                                            <div class="form-group">
+                                                {{ form_label(form.reference, 'Referenz') }}
+                                                {{ form_widget(form.reference, {'attr': {'class': 'form-control'}}) }}
+                                                {{ form_errors(form.reference) }}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row mt-3">
+                        <div class="col-12">
+                            {{ form_widget(form.submit, {'attr': {'class': 'btn btn-primary'}}) }}
+                        </div>
+                    </div>
+                    
+                    {{ form_end(form) }}
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="card-title mb-0">Hilfe</h6>
+                </div>
+                <div class="card-body">
+                    <h6>PayPal CSV-Format:</h6>
+                    <p>Erwartete Spalten: Date, Name, Email, Amount, Reference, Description</p>
+                    
+                    <h6>Bank Transfer CSV-Format:</h6>
+                    <p>Erwartete Spalten: Date, Amount, Reference, Description, Account</p>
+                    
+                    <h6>Manuelle Eingabe:</h6>
+                    <p>Für einzelne Zahlungen, die nicht über eine Datei importiert werden können.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

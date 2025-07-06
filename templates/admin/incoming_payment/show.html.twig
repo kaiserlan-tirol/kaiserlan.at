@@ -1,0 +1,544 @@
+{% extends 'admin/adminBase.html.twig' %}
+
+{% block siteheading %}Zahlung #{{ payment.id }}{% endblock %}
+
+{% block stylesheets %}
+    {{ parent() }}
+    <style>
+        .suggested-matches-container {
+            border-radius: 0.375rem;
+        }
+        
+        .suggested-matches-container::-webkit-scrollbar {
+            width: 8px;
+        }
+        
+        .suggested-matches-container::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 4px;
+        }
+        
+        .suggested-matches-container::-webkit-scrollbar-thumb {
+            background: #c1c1c1;
+            border-radius: 4px;
+        }
+        
+        .suggested-matches-container::-webkit-scrollbar-thumb:hover {
+            background: #a8a8a8;
+        }
+        
+        .suggested-match-item {
+            transition: background-color 0.2s ease;
+        }
+        
+        .suggested-match-item:hover {
+            background-color: #f8f9fa;
+        }
+        
+        .avatar-sm {
+            width: 2.5rem;
+            height: 2.5rem;
+            font-size: 0.875rem;
+            font-weight: 600;
+        }
+        
+        .match-reasons .badge {
+            font-size: 0.75rem;
+            padding: 0.25em 0.5em;
+        }
+        
+        .progress {
+            background-color: #e9ecef;
+        }
+    </style>
+{% endblock %}
+
+{% block main %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="card-title mb-0">Zahlung #{{ payment.id }}</h5>
+                    <a href="{{ path('admin_incoming_payment') }}" class="btn btn-secondary">
+                        <i class="fas fa-arrow-left"></i> Zurück
+                    </a>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-8">
+                            <!-- Payment Details -->
+                            <div class="card mb-4">
+                                <div class="card-header">
+                                    <h6 class="card-title mb-0">Zahlungsdetails</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <dl class="row">
+                                                <dt class="col-sm-4">Betrag:</dt>
+                                                <dd class="col-sm-8">
+                                                    <span class="badge badge-{% if payment.amount >= 0 %}success{% else %}danger{% endif %} badge-lg">
+                                                        {{ payment.amount|number_format(2, ',', '.') }} €
+                                                    </span>
+                                                </dd>
+                                                
+                                                <dt class="col-sm-4">Quelle:</dt>
+                                                <dd class="col-sm-8">
+                                                    <span class="badge badge-secondary">{{ payment.source|upper }}</span>
+                                                </dd>
+                                                
+                                                <dt class="col-sm-4">Status:</dt>
+                                                <dd class="col-sm-8">
+                                                    <span class="badge badge-{% if payment.status == 'pending' %}warning{% elseif payment.status == 'processed' %}success{% else %}secondary{% endif %} badge-lg">
+                                                        {{ payment.status|upper }}
+                                                    </span>
+                                                </dd>
+                                                
+                                                <dt class="col-sm-4">Datum:</dt>
+                                                <dd class="col-sm-8">{{ payment.createdAt|date('d.m.Y H:i:s') }}</dd>
+                                            </dl>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <dl class="row">
+                                                <dt class="col-sm-4">Referenz:</dt>
+                                                <dd class="col-sm-8">
+                                                    {% if payment.reference %}
+                                                        <code>{{ payment.reference }}</code>
+                                                    {% else %}
+                                                        <span class="text-muted">Keine</span>
+                                                    {% endif %}
+                                                </dd>
+                                                
+                                                <dt class="col-sm-4">Beschreibung:</dt>
+                                                <dd class="col-sm-8">
+                                                    {% if payment.description %}
+                                                        {{ payment.description }}
+                                                    {% else %}
+                                                        <span class="text-muted">Keine</span>
+                                                    {% endif %}
+                                                </dd>
+                                                
+                                                <dt class="col-sm-4">Verarbeitet am:</dt>
+                                                <dd class="col-sm-8">
+                                                    {% if payment.processedAt %}
+                                                        {{ payment.processedAt|date('d.m.Y H:i:s') }}
+                                                    {% else %}
+                                                        <span class="text-muted">Noch nicht verarbeitet</span>
+                                                    {% endif %}
+                                                </dd>
+                                            </dl>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- User Match -->
+                            <div class="card mb-4">
+                                <div class="card-header">
+                                    <h6 class="card-title mb-0">Benutzerzuordnung</h6>
+                                </div>
+                                <div class="card-body">
+                                    {% if matchedUser %}
+                                        <div class="alert alert-success">
+                                            <h6><i class="fas fa-user-check"></i> Zugeordnet zu:</h6>
+                                            <p class="mb-1">
+                                                <strong>{{ matchedUser.nickname }}</strong>
+                                                <span class="badge badge-info">{{ matchedUser.email }}</span>
+                                            </p>
+                                            {% if payment.matchConfidence %}
+                                                <p class="mb-1">
+                                                    <small class="text-muted">
+                                                        Vertrauen: {{ payment.confidenceLabel }}
+                                                        {% if payment.isManualMatch %}
+                                                            <span class="badge badge-warning">Manuell</span>
+                                                        {% else %}
+                                                            <span class="badge badge-success">Automatisch</span>
+                                                        {% endif %}
+                                                    </small>
+                                                </p>
+                                            {% endif %}
+                                        </div>
+                                    {% else %}
+                                        <div class="alert alert-warning">
+                                            <h6><i class="fas fa-user-times"></i> Nicht zugeordnet</h6>
+                                            <p class="mb-0">Diese Zahlung wurde noch keinem Benutzer zugeordnet.</p>
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            
+                            <!-- Metadata -->
+                            {% if payment.metadata %}
+                            <div class="card mb-4">
+                                <div class="card-header">
+                                    <h6 class="card-title mb-0">Metadata</h6>
+                                </div>
+                                <div class="card-body">
+                                    <pre class="bg-light p-3 rounded">{{ payment.metadata|json_encode(constant('JSON_PRETTY_PRINT')) }}</pre>
+                                </div>
+                            </div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="col-md-4">
+                            <!-- Actions -->
+                            <div class="card mb-4">
+                                <div class="card-header">
+                                    <h6 class="card-title mb-0">Aktionen</h6>
+                                </div>
+                                <div class="card-body">
+                                    {% if payment.status == 'pending' %}
+                                        {% if not matchedUser %}
+                                            <!-- Auto-match button as quick action -->
+                                            <form method="post" action="{{ path('admin_incoming_payment_auto_match', {'id': payment.id}) }}" class="mb-2">
+                                                <button type="submit" class="btn btn-success btn-block">
+                                                    <i class="fas fa-magic"></i> Automatisch zuordnen
+                                                </button>
+                                            </form>
+                                            
+                                            {% if suggestedMatches and suggestedMatches|length > 0 %}
+                                            <div class="alert alert-info py-2 px-3 mb-2">
+                                                <small>
+                                                    <i class="fas fa-lightbulb"></i> 
+                                                    <strong>Benutzer-Vorschläge verfügbar:</strong><br>
+                                                    Verwenden Sie die "Zuordnen" Buttons bei den vorgeschlagenen Benutzern unten, oder nutzen Sie die Suchfunktion zum Filtern.
+                                                </small>
+                                            </div>
+                                            {% endif %}
+                                        {% else %}
+                                            <form method="post" action="{{ path('admin_incoming_payment_process', {'id': payment.id}) }}" class="mb-2">
+                                                <button type="submit" class="btn btn-success btn-block">
+                                                    <i class="fas fa-check"></i> Verarbeiten
+                                                </button>
+                                            </form>
+                                        {% endif %}
+                                        
+                                        <form method="post" action="{{ path('admin_incoming_payment_ignore', {'id': payment.id}) }}" class="mb-2">
+                                            <button type="submit" class="btn btn-secondary btn-block">
+                                                <i class="fas fa-times"></i> Ignorieren
+                                            </button>
+                                        </form>
+                                    {% else %}
+                                        <div class="alert alert-info">
+                                            <small>
+                                                <i class="fas fa-info-circle"></i>
+                                                Diese Zahlung wurde bereits verarbeitet oder ist nicht mehr änderbar.
+                                            </small>
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            
+                            <!-- Suggested Matches -->
+                            {% if suggestedMatches %}
+                            <div class="card mb-4">
+                                <div class="card-header">
+                                    <div class="d-flex justify-content-between align-items-center mb-2">
+                                        <h6 class="card-title mb-0">
+                                            <i class="fas fa-lightbulb text-warning"></i> 
+                                            Vorgeschlagene Zuordnungen
+                                        </h6>
+                                        <span class="badge badge-secondary" id="match-count">{{ suggestedMatches|length }}</span>
+                                    </div>
+                                    <!-- Search Bar -->
+                                    <div class="input-group mb-2">
+                                        <div class="input-group-prepend">
+                                            <span class="input-group-text">
+                                                <i class="fas fa-search"></i>
+                                            </span>
+                                        </div>
+                                        <input type="text" class="form-control" id="user-search" 
+                                               placeholder="Nach Name, Nickname oder E-Mail suchen...">
+                                        <div class="input-group-append">
+                                            <button class="btn btn-outline-secondary" type="button" id="clear-search">
+                                                <i class="fas fa-times"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Filter Options -->
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="filter-active-tickets">
+                                        <label class="form-check-label" for="filter-active-tickets">
+                                            <i class="fas fa-ticket-alt text-primary"></i>
+                                            Nur Benutzer mit aktiven Tickets anzeigen<br>
+                                            <small class="text-muted">Aktiviert automatisch "Alle Benutzer anzeigen"</small>
+                                        </label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="show-all-users">
+                                        <label class="form-check-label" for="show-all-users">
+                                            <i class="fas fa-users text-info"></i>
+                                            Alle Benutzer anzeigen (auch ohne Übereinstimmungen)
+                                        </label>
+                                    </div>
+                                </div>
+                                <div class="card-body p-0">
+                                    <div class="suggested-matches-container" style="max-height: 60vh; overflow-y: auto;" id="matches-container">
+                                        {% for match in suggestedMatches %}
+                                        <div class="suggested-match-item border-bottom p-3 {% if loop.last %}border-0{% endif %}" 
+                                             data-nickname="{{ match.user.nickname|lower }}" 
+                                             data-email="{{ match.user.email|lower }}"
+                                             data-firstname="{{ match.user.firstname|lower }}"
+                                             data-surname="{{ match.user.surname|lower }}"
+                                             data-has-ticket="{{ usersWithTickets[match.user.uuid.toString] ? 'true' : 'false' }}">
+                                            <div class="row align-items-center">
+                                                <div class="col-12">
+                                                    <div class="d-flex align-items-center mb-2">
+                                                        <div>
+                                                            <h6 class="mb-0">
+                                                                {{ match.user.nickname }} - {{ match.user.firstname }} {{ match.user.surname }}
+                                                                {% if usersWithTickets[match.user.uuid.toString] %}
+                                                                    <i class="fas fa-ticket-alt text-primary ms-1" 
+                                                                       data-bs-toggle="tooltip" 
+                                                                       title="Hat aktives Ticket"></i>
+                                                                {% endif %}
+                                                            </h6>
+                                                            <small class="text-muted">{{ match.user.email }}</small>
+                                                        </div>
+                                                    </div>
+                                                    
+                                                    <!-- Match Score -->
+                                                    <div class="mb-2">
+                                                      <div class="row">
+                                                        <div class="col-md-8">
+                                                          <div class="d-flex justify-content-between align-items-center mb-1">
+                                                              <small class="text-muted">Vertrauenswert</small>
+                                                              <small class="fw-bold text-{% if match.score >= 0.8 %}success{% elseif match.score >= 0.6 %}warning{% else %}danger{% endif %}">
+                                                                  {{ (match.score * 100)|round }}%
+                                                              </small>
+                                                          </div>
+                                                          <div class="progress" style="height: 4px;">
+                                                              <div class="progress-bar bg-{% if match.score >= 0.8 %}success{% elseif match.score >= 0.6 %}warning{% else %}danger{% endif %}" 
+                                                                  style="width: {{ (match.score * 100)|round }}%"></div>
+                                                          </div>
+                                                      </div>
+                                                      <div class="col-md-4 text-end">
+                                                          <form method="post" action="{{ path('admin_incoming_payment_assign_user', {'id': payment.id}) }}" class="d-inline">
+                                                            <input type="hidden" name="user" value="{{ match.user.id }}">
+                                                            <input type="hidden" name="confidence" value="{{ match.score }}">
+                                                            <button type="submit" class="btn btn-sm btn-primary" 
+                                                                    data-bs-toggle="tooltip" 
+                                                                    title="Diesem Benutzer zuordnen">
+                                                                <i class="fas fa-link"></i> Zuordnen
+                                                            </button>
+                                                        </form>
+                                                        </div>
+                                                      </div>
+                                                    </div>
+
+                                                    <!-- Match Reasons -->
+                                                    {% if match.reasons %}
+                                                    <div class="match-reasons">
+                                                        <small class="text-muted d-block mb-1">Übereinstimmungen:</small>
+                                                        <div class="d-flex flex-wrap gap-1">
+                                                            {% for reason in match.reasons %}
+                                                            <span class="badge badge-light text-dark">{{ reason }}</span>
+                                                            {% endfor %}
+                                                        </div>
+                                                    </div>
+                                                    {% endif %}
+                                                </div>
+                                            </div>
+                                        </div>
+                                        {% endfor %}
+                                    </div>
+                                    
+                                    <!-- Hidden section for all users -->
+                                    <div id="all-users-section" style="display: none;">
+                                        {% for user in allUsers %}
+                                        <div class="suggested-match-item border-bottom p-3 {% if loop.last %}border-0{% endif %}" 
+                                             data-nickname="{{ user.nickname|lower }}" 
+                                             data-email="{{ user.email|lower }}"
+                                             data-firstname="{{ user.firstname|lower }}"
+                                             data-surname="{{ user.surname|lower }}"
+                                             data-has-ticket="{{ usersWithTickets[user.uuid.toString] ? 'true' : 'false' }}"
+                                             data-is-all-user="true">
+                                            <div class="row align-items-center">
+                                                <div class="col-12">
+                                                    <div class="d-flex align-items-center mb-2">
+                                                        <div class="avatar-sm bg-secondary text-white rounded-circle d-flex align-items-center justify-content-center me-3">
+                                                            {{ (user.nickname|first)|upper }}
+                                                        </div>
+                                                        <div class="flex-grow-1">
+                                                            <div class="d-flex align-items-center">
+                                                                <h6 class="mb-0 me-2">{{ user.nickname }}</h6>
+                                                                {% if usersWithTickets[user.uuid.toString] %}
+                                                                    <i class="fas fa-ticket-alt text-primary" title="Hat aktive Tickets"></i>
+                                                                {% endif %}
+                                                            </div>
+                                                            <small class="text-muted">{{ user.firstname }} {{ user.surname }}</small>
+                                                            {% if user.email %}
+                                                                <small class="text-muted d-block">{{ user.email }}</small>
+                                                            {% endif %}
+                                                        </div>
+                                                    </div>
+                                                    <div class="row align-items-center">
+                                                        <div class="col-md-8">
+                                                            <span class="text-muted">
+                                                                <i class="fas fa-info-circle"></i> Keine automatischen Übereinstimmungen
+                                                            </span>
+                                                        </div>
+                                                        <div class="col-md-4 text-end">
+                                                            <form method="post" action="{{ path('admin_incoming_payment_assign_user', {'id': payment.id}) }}" class="d-inline">
+                                                                <input type="hidden" name="user" value="{{ user.id }}">
+                                                                <input type="hidden" name="confidence" value="0">
+                                                                <button type="submit" class="btn btn-sm btn-outline-primary" 
+                                                                        data-bs-toggle="tooltip" 
+                                                                        title="Diesem Benutzer zuordnen">
+                                                                    <i class="fas fa-link"></i> Zuordnen
+                                                                </button>
+                                                            </form>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        {% endfor %}
+                                    </div>
+                                    
+                                    {% if suggestedMatches|length == 0 %}
+                                    <div class="text-center p-4 text-muted" id="no-matches-message">
+                                        <i class="fas fa-search fa-2x mb-2 opacity-50"></i>
+                                        <p class="mb-0">Keine passenden Benutzer gefunden</p>
+                                        <small>Versuchen Sie eine manuelle Zuordnung</small>
+                                    </div>
+                                    {% endif %}
+                                    
+                                    <!-- No search results message (hidden by default) -->
+                                    <div class="text-center p-4 text-muted d-none" id="no-search-results">
+                                        <i class="fas fa-search fa-2x mb-2 opacity-50"></i>
+                                        <p class="mb-0">Keine Benutzer gefunden</p>
+                                        <small>Versuchen Sie andere Suchbegriffe</small>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const searchInput = document.getElementById('user-search');
+    const clearButton = document.getElementById('clear-search');
+    const ticketFilter = document.getElementById('filter-active-tickets');
+    const showAllUsersCheckbox = document.getElementById('show-all-users');
+    const matchItems = document.querySelectorAll('.suggested-match-item');
+    const matchCount = document.getElementById('match-count');
+    const noSearchResults = document.getElementById('no-search-results');
+    const noMatchesMessage = document.getElementById('no-matches-message');
+    const allUsersSection = document.getElementById('all-users-section');
+    const totalMatches = {{ suggestedMatches|length }};
+    const totalAllUsers = {{ allUsers|length }};
+
+    function filterMatches() {
+        const searchTerm = searchInput.value.toLowerCase().trim();
+        const onlyActiveTickets = ticketFilter.checked;
+        const showAllUsers = showAllUsersCheckbox.checked;
+        let visibleCount = 0;
+
+        // Show/hide all users section
+        if (showAllUsers) {
+            allUsersSection.style.display = '';
+        } else {
+            allUsersSection.style.display = 'none';
+        }
+
+        matchItems.forEach(function(item) {
+            const nickname = item.dataset.nickname || '';
+            const email = item.dataset.email || '';
+            const firstname = item.dataset.firstname || '';
+            const surname = item.dataset.surname || '';
+            const hasTicket = item.dataset.hasTicket === 'true';
+            const isAllUser = item.dataset.isAllUser === 'true';
+
+            // Skip all-users items if not showing all users
+            if (isAllUser && !showAllUsers) {
+                return;
+            }
+
+            // Check search term match
+            const searchMatches = nickname.includes(searchTerm) ||
+                                email.includes(searchTerm) ||
+                                firstname.includes(searchTerm) ||
+                                surname.includes(searchTerm);
+
+            // Check ticket filter
+            const ticketMatches = !onlyActiveTickets || hasTicket;
+
+            // Show item if both conditions are met
+            const shouldShow = (searchMatches || searchTerm === '') && ticketMatches;
+
+            if (shouldShow) {
+                item.style.display = '';
+                visibleCount++;
+            } else {
+                item.style.display = 'none';
+            }
+        });
+
+        // Update match count
+        if (showAllUsers) {
+            matchCount.textContent = visibleCount;
+        } else {
+            matchCount.textContent = visibleCount;
+        }
+
+        // Show/hide no results message
+        if (visibleCount === 0 && (searchTerm !== '' || onlyActiveTickets)) {
+            noSearchResults.classList.remove('d-none');
+        } else {
+            noSearchResults.classList.add('d-none');
+        }
+        
+        // Hide the "no matches" message if showing all users
+        if (showAllUsers && noMatchesMessage) {
+            noMatchesMessage.style.display = 'none';
+        } else if (!showAllUsers && noMatchesMessage) {
+            noMatchesMessage.style.display = totalMatches === 0 ? '' : 'none';
+        }
+    }
+
+    // Search input event
+    searchInput.addEventListener('input', filterMatches);
+    
+    // Ticket filter event
+    ticketFilter.addEventListener('change', function() {
+        // When ticket filter is enabled, automatically show all users
+        // so users can actually see the users with tickets
+        if (ticketFilter.checked && !showAllUsersCheckbox.checked) {
+            showAllUsersCheckbox.checked = true;
+        }
+        filterMatches();
+    });
+
+    // Show all users checkbox event
+    showAllUsersCheckbox.addEventListener('change', filterMatches);
+
+    // Clear search button
+    clearButton.addEventListener('click', function() {
+        searchInput.value = '';
+        ticketFilter.checked = false;
+        showAllUsersCheckbox.checked = false;
+        filterMatches();
+        searchInput.focus();
+    });
+
+    // Clear search on escape key
+    searchInput.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            searchInput.value = '';
+            ticketFilter.checked = false;
+            showAllUsersCheckbox.checked = false;
+            filterMatches();
+        }
+    });
+});
+</script>
+{% endblock %}

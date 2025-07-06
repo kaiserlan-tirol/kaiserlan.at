@@ -1,0 +1,183 @@
+{% extends 'admin/adminBase.html.twig' %}
+
+{% block siteheading %}Eingehende Zahlungen{% endblock %}
+
+{% block main %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="card-title mb-0">Zahlungsübersicht</h5>
+                    <a href="{{ path('admin_incoming_payment_import') }}" class="btn btn-primary">
+                        <i class="fas fa-plus"></i> Importieren
+                    </a>
+                </div>
+                <div class="card-body">
+                    <!-- Statistics Cards -->
+                    <div class="row mb-4">
+                        <div class="col-md-2 col-sm-6">
+                            <div class="card text-white bg-warning">
+                                <div class="card-body">
+                                    <h4>{{ stats.pending }}</h4>
+                                    <p class="card-text">Wartend</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-2 col-sm-6">
+                            <div class="card text-white bg-danger">
+                                <div class="card-body">
+                                    <h4>{{ stats.unmatched }}</h4>
+                                    <p class="card-text">Unzugeordnet</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-2 col-sm-6">
+                            <div class="card text-white bg-success">
+                                <div class="card-body">
+                                    <h4>{{ stats.processed }}</h4>
+                                    <p class="card-text">Verarbeitet</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-2 col-sm-6">
+                            <div class="card text-white bg-secondary">
+                                <div class="card-body">
+                                    <h4>{{ stats.ignored }}</h4>
+                                    <p class="card-text">Ignoriert</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Tab Navigation -->
+                    <ul class="nav nav-tabs" id="paymentTabs" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <a class="nav-link {% if currentTab == 'pending' %}active{% endif %}" 
+                               href="{{ path('admin_incoming_payment', {'tab': 'pending'}) }}">
+                                <i class="fas fa-clock"></i> Wartend ({{ stats.pending }})
+                            </a>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <a class="nav-link {% if currentTab == 'unmatched' %}active{% endif %}" 
+                               href="{{ path('admin_incoming_payment', {'tab': 'unmatched'}) }}">
+                                <i class="fas fa-question"></i> Unzugeordnet ({{ stats.unmatched }})
+                            </a>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <a class="nav-link {% if currentTab == 'all' %}active{% endif %}" 
+                               href="{{ path('admin_incoming_payment', {'tab': 'all'}) }}">
+                                <i class="fas fa-list"></i> Alle
+                            </a>
+                        </li>
+                    </ul>
+
+                    <!-- Payments Table -->
+                    <div class="tab-content mt-3">
+                        <div class="table-responsive">
+                            <table class="table table-striped table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>Datum</th>
+                                        <th>Betrag</th>
+                                        <th>Quelle</th>
+                                        <th>Status</th>
+                                        <th>Zugeordnet</th>
+                                        <th>Beschreibung</th>
+                                        <th>Aktionen</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for data in paymentData %}
+                                    {% set payment = data.payment %}
+                                    {% set user = data.user %}
+                                    <tr>
+                                        <td>
+                                            <a href="{{ path('admin_incoming_payment_show', {'id': payment.id}) }}">
+                                                #{{ payment.id }}
+                                            </a>
+                                        </td>
+                                        <td>{{ payment.createdAt|date('d.m.Y H:i') }}</td>
+                                        <td>
+                                            <span class="badge badge-{% if payment.amount >= 0 %}success{% else %}danger{% endif %}">
+                                                {{ payment.amount|number_format(2, ',', '.') }} €
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <span class="badge badge-secondary">
+                                                {{ payment.source|upper }}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <span class="badge badge-{% if payment.status == 'pending' %}warning{% elseif payment.status == 'processed' %}success{% else %}secondary{% endif %}">
+                                                {{ payment.status|upper }}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            {% if user %}
+                                                <span class="badge badge-success">
+                                                    {{ user.nickname }}
+                                                </span>
+                                                {% if payment.matchConfidence %}
+                                                    <small class="text-muted">
+                                                        ({{ payment.confidenceLabel }})
+                                                    </small>
+                                                {% endif %}
+                                            {% else %}
+                                                <span class="text-muted">Nicht zugeordnet</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <small class="text-muted">
+                                                {{ payment.description|length > 50 ? payment.description[:50] ~ '...' : payment.description }}
+                                            </small>
+                                        </td>
+                                        <td>
+                                            <div class="btn-group btn-group-sm">
+                                                <a href="{{ path('admin_incoming_payment_show', {'id': payment.id}) }}" 
+                                                   class="btn btn-sm btn-outline-primary">
+                                                    <i class="fas fa-eye"></i>
+                                                </a>
+                                                
+                                                {% if payment.status == 'pending' %}
+                                                    {% if not user %}
+                                                        <form method="post" action="{{ path('admin_incoming_payment_auto_match', {'id': payment.id}) }}" class="d-inline">
+                                                            <button type="submit" class="btn btn-sm btn-outline-success" title="Automatisch zuordnen">
+                                                                <i class="fas fa-magic"></i>
+                                                            </button>
+                                                        </form>
+                                                    {% else %}
+                                                        <form method="post" action="{{ path('admin_incoming_payment_process', {'id': payment.id}) }}" class="d-inline">
+                                                            <button type="submit" class="btn btn-sm btn-outline-success" title="Verarbeiten">
+                                                                <i class="fas fa-check"></i>
+                                                            </button>
+                                                        </form>
+                                                    {% endif %}
+                                                    
+                                                    <form method="post" action="{{ path('admin_incoming_payment_ignore', {'id': payment.id}) }}" class="d-inline">
+                                                        <button type="submit" class="btn btn-sm btn-outline-secondary" title="Ignorieren">
+                                                            <i class="fas fa-times"></i>
+                                                        </button>
+                                                    </form>
+                                                {% endif %}
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    {% else %}
+                                    <tr>
+                                        <td colspan="8" class="text-center text-muted">
+                                            Keine Zahlungen gefunden.
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

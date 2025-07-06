@@ -55,7 +55,89 @@
                 {{ form_row(form.steamAccount, {'input_group_prepend' : '<i class="fab fa-steam"></i>'}) }}
                 {{ form_row(form.website, {'input_group_prepend' : '<i class="fas fa-globe"></i>'}) }}
                 {{ form_row(form.hardware, {'input_group_prepend' : '<i class="fas fa-desktop"></i>'}) }}
+                
+                <h2 class="h4 pt-3 border-bottom">Zahlungsinformationen</h2>
+                <p class="text-muted small">
+                    <i class="fas fa-info-circle"></i> 
+                    Diese Informationen helfen bei der automatischen Zuordnung deiner Zahlungen.
+                </p>
+                {{ form_row(form.paypalEmails, {'input_group_prepend' : '<i class="fab fa-paypal"></i>'}) }}
+                {{ form_row(form.ibanNumbers, {'input_group_prepend' : '<i class="fas fa-university"></i>'}) }}
+                
                 <hr>
+                
+                <script>
+                document.addEventListener('DOMContentLoaded', function() {
+                    // Handle PayPal emails collection
+                    handleCollectionField('.paypal-emails-collection', 'PayPal E-Mail hinzufügen', 'E-Mail-Adresse entfernen');
+                    
+                    // Handle IBAN numbers collection  
+                    handleCollectionField('.iban-numbers-collection', 'IBAN hinzufügen', 'IBAN entfernen');
+                    
+                    function handleCollectionField(selector, addText, removeText) {
+                        const collectionHolder = document.querySelector(selector);
+                        if (!collectionHolder) return;
+                        
+                        // Add remove buttons to existing items
+                        collectionHolder.querySelectorAll('input').forEach(function(input) {
+                            if (!input.nextElementSibling || !input.nextElementSibling.classList.contains('btn-remove')) {
+                                addRemoveButton(input, removeText);
+                            }
+                        });
+                        
+                        // Add "Add" button
+                        if (!collectionHolder.querySelector('.btn-add-collection')) {
+                            const addButton = document.createElement('button');
+                            addButton.type = 'button';
+                            addButton.className = 'btn btn-sm btn-outline-secondary btn-add-collection mt-2';
+                            addButton.innerHTML = '<i class="fas fa-plus"></i> ' + addText;
+                            addButton.addEventListener('click', function() {
+                                addCollectionItem(collectionHolder, removeText);
+                            });
+                            collectionHolder.appendChild(addButton);
+                        }
+                    }
+                    
+                    function addRemoveButton(input, removeText) {
+                        const removeButton = document.createElement('button');
+                        removeButton.type = 'button';
+                        removeButton.className = 'btn btn-sm btn-outline-danger btn-remove ml-2';
+                        removeButton.innerHTML = '<i class="fas fa-trash"></i>';
+                        removeButton.title = removeText;
+                        removeButton.addEventListener('click', function() {
+                            input.parentNode.remove();
+                        });
+                        
+                        // Wrap input and button in a div
+                        const wrapper = document.createElement('div');
+                        wrapper.className = 'd-flex align-items-center mb-2';
+                        input.parentNode.insertBefore(wrapper, input);
+                        wrapper.appendChild(input);
+                        wrapper.appendChild(removeButton);
+                    }
+                    
+                    function addCollectionItem(collectionHolder, removeText) {
+                        const prototype = collectionHolder.dataset.prototype;
+                        const index = collectionHolder.dataset.index || collectionHolder.querySelectorAll('input').length;
+                        
+                        let newForm = prototype.replace(/__name__/g, index);
+                        newForm = newForm.replace(/__paypal_name__/g, index);
+                        newForm = newForm.replace(/__iban_name__/g, index);
+                        
+                        const wrapper = document.createElement('div');
+                        wrapper.innerHTML = newForm;
+                        const input = wrapper.querySelector('input');
+                        
+                        // Insert before the add button
+                        const addButton = collectionHolder.querySelector('.btn-add-collection');
+                        collectionHolder.insertBefore(wrapper, addButton);
+                        
+                        addRemoveButton(input, removeText);
+                        collectionHolder.dataset.index = parseInt(index) + 1;
+                    }
+                });
+                </script>
+                
                 <div class="float-right pb-2 pt-2">
                     <a class="btn btn-secondary" href="{{ path('user_profile') }}">Abbrechen</a>
                     <button type="submit" id="user_save" class="btn-primary btn">Speichern</button>
