@@ -18,7 +18,6 @@ class IncomingPayment
     public const STATUS_IGNORED = 'ignored';
 
     public const SOURCE_PAYPAL = 'paypal';
-    public const SOURCE_BANK = 'bank_transfer';
     public const SOURCE_MANUAL = 'manual_admin';
 
     public const CONFIDENCE_HIGH = 'high';      // 90%+ match confidence
@@ -331,7 +330,6 @@ class IncomingPayment
     {
         return match ($this->source) {
             self::SOURCE_PAYPAL => 'PayPal',
-            self::SOURCE_BANK => 'Banküberweisung',
             self::SOURCE_MANUAL => 'Manuell',
             default => ucfirst($this->source),
         };

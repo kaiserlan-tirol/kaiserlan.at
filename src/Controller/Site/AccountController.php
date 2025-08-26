@@ -209,7 +209,9 @@ class AccountController extends AbstractController
         $form = $this->createForm(UserRegisterType::class);
         $form->handleRequest($request);
 
-        if ($form->isSubmitted() && $form->isValid()) {
+        if ($form->isSubmitted()) {
+          // error_log('Form validation errors: ' . json_encode($form->getErrors(true)));
+          if ($form->isValid()) {
             $user = $form->getData();
             try {
                 $this->manager->persist($user);
@@ -219,11 +221,19 @@ class AccountController extends AbstractController
 
                 return $this->redirectToRoute('app_login');
             } catch (PersistException $e) {
+
+                error_log('Registration error details: ' . json_encode([
+                  'code' => $e->getCode(),
+                  'message' => $e->getMessage(),
+                  'trace' => $e->getTraceAsString()
+                ]));
+
                 match ($e->getCode()) {
                     PersistException::REASON_NON_UNIQUE => $this->addFlash('error', 'Nickname und/oder E-Mail Adresse schon vergeben'),
                     default => $this->addFlash('error', 'Es ist ein unerwarteter Fehler aufgetreten'),
                 };
             }
+          }
         }
 
         return $this->render('security/register.html.twig', [

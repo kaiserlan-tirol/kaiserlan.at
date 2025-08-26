@@ -174,17 +174,6 @@ class PaymentMatchingService
             }
         }
 
-        // IBAN matching (for bank transfers)
-        if ($payment->getSource() === IncomingPayment::SOURCE_BANK && $payment->getPayerAccount()) {
-            foreach ($user->getIbanNumbers() as $iban) {
-                if ($payment->getPayerAccount() === $iban) {
-                    $score += 0.6;
-                    $reasons[] = 'IBAN Übereinstimmung';
-                    break;
-                }
-            }
-        }
-
         return $score > 0 ? ['total' => min($score, 1.0), 'reasons' => $reasons] : ['total' => 0, 'reasons' => []];
     }
 
@@ -198,16 +187,6 @@ class PaymentMatchingService
                 $this->logger->info('Added PayPal email to user profile', [
                     'user_id' => $user->getUuid()->toString(),
                     'paypal_email' => $payment->getPayerEmail()
-                ]);
-            }
-        }
-
-        if ($payment->getPayerAccount() && $payment->getSource() === IncomingPayment::SOURCE_BANK) {
-            if (!$user->hasIbanNumber($payment->getPayerAccount())) {
-                $user->addIbanNumber($payment->getPayerAccount());
-                $this->logger->info('Added IBAN to user profile', [
-                    'user_id' => $user->getUuid()->toString(),
-                    'iban' => substr($payment->getPayerAccount(), 0, 8) . '****' // Log only first 8 chars for privacy
                 ]);
             }
         }

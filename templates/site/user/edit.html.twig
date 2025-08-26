@@ -62,7 +62,6 @@
                     Diese Informationen helfen bei der automatischen Zuordnung deiner Zahlungen.
                 </p>
                 {{ form_row(form.paypalEmails, {'input_group_prepend' : '<i class="fab fa-paypal"></i>'}) }}
-                {{ form_row(form.ibanNumbers, {'input_group_prepend' : '<i class="fas fa-university"></i>'}) }}
                 
                 <hr>
                 
@@ -70,10 +69,7 @@
                 document.addEventListener('DOMContentLoaded', function() {
                     // Handle PayPal emails collection
                     handleCollectionField('.paypal-emails-collection', 'PayPal E-Mail hinzufügen', 'E-Mail-Adresse entfernen');
-                    
-                    // Handle IBAN numbers collection  
-                    handleCollectionField('.iban-numbers-collection', 'IBAN hinzufügen', 'IBAN entfernen');
-                    
+
                     function handleCollectionField(selector, addText, removeText) {
                         const collectionHolder = document.querySelector(selector);
                         if (!collectionHolder) return;

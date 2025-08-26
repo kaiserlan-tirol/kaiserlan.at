@@ -290,7 +290,10 @@ final class IdmManager
             }
         }
 
+        // error_log('Attempting POST request with data: ' . json_encode($data));
         $code = $this->send('POST', $url, $response, [Response::HTTP_CONFLICT], [], $data);
+        // error_log('POST response: ' . json_encode($response));
+
         $this->throwOnCode($code, $object);
 
         return $response;

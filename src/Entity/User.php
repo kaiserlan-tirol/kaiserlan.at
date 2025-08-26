@@ -119,9 +119,6 @@ class User
     #[Groups(['read'])]
     private Collection|array $clans = [];
 
-    #[Groups(['read', 'write'])]
-    private ?array $ibanNumbers = null;
-
     public function getId(): ?int
     {
         return $this->id;
@@ -456,33 +453,5 @@ class User
         $this->clans = $clans;
 
         return $this;
-    }
-
-    public function getIbanNumbers(): ?array
-    {
-        return $this->ibanNumbers ?? [];
-    }
-
-    public function setIbanNumbers(?array $ibanNumbers): self
-    {
-        $this->ibanNumbers = $ibanNumbers;
-
-        return $this;
-    }
-
-    public function addIbanNumber(string $iban): self
-    {
-        $ibans = $this->getIbanNumbers();
-        if (!in_array($iban, $ibans)) {
-            $ibans[] = $iban;
-            $this->setIbanNumbers($ibans);
-        }
-
-        return $this;
-    }
-
-    public function hasIbanNumber(string $iban): bool
-    {
-        return in_array($iban, $this->getIbanNumbers());
     }
 }

@@ -113,25 +113,6 @@ class UserType extends AbstractType
                     'class' => 'paypal-emails-collection'
                 ],
             ])
-            ->add('ibanNumbers', CollectionType::class, [
-                'entry_type' => TextType::class,
-                'allow_add' => true,
-                'allow_delete' => true,
-                'required' => false,
-                'label' => 'IBAN-Nummern',
-                'help' => 'Füge deine IBAN-Nummern hinzu für bessere Banküberweisung-Zuordnung',
-                'prototype_name' => '__iban_name__',
-                'entry_options' => [
-                    'attr' => [
-                        'class' => 'form-control mb-2',
-                        'placeholder' => 'z.B. AT123456789012345678'
-                    ],
-                    'label' => false,
-                ],
-                'attr' => [
-                    'class' => 'iban-numbers-collection'
-                ],
-            ])
         ;
 
         if ($options['with_image']) {
