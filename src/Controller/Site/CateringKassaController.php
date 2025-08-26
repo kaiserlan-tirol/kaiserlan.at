@@ -131,7 +131,7 @@ class CateringKassaController extends AbstractController
     {
         try {
             // Log the incoming userId for debugging
-            error_log('Products method called with userId: ' . $userId);
+            // error_log('Products method called with userId: ' . $userId);
             
             // Cleanup the userId in case it was URL-encoded or has extra characters
             $userId = trim($userId);
@@ -146,7 +146,6 @@ class CateringKassaController extends AbstractController
             try {
                 // Handle both URL-encoded and raw UUIDs
                 $decodedUserId = urldecode($userId);
-                error_log('Attempting to parse UUID: ' . $decodedUserId);
                 $userUuid = Uuid::fromString($decodedUserId);
             } catch (\InvalidArgumentException $e) {
                 $this->addFlash('error', 'Ungültige UUID: ' . $e->getMessage());
@@ -398,8 +397,8 @@ class CateringKassaController extends AbstractController
             );
             
             // Log successful user lookup
-            error_log('QR Lookup success: Found user ' . $user->getNickname() . ' with UUID ' . $userUuidString);
-            error_log('Generated redirect URL: ' . $redirectUrl);
+            // error_log('QR Lookup success: Found user ' . $user->getNickname() . ' with UUID ' . $userUuidString);
+            // error_log('Generated redirect URL: ' . $redirectUrl);
             
             return $this->json([
                 'success' => true,

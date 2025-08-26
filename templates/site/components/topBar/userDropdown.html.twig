@@ -5,7 +5,8 @@
     <div class="dropdown-menu dropdown-menu-right mt-0 p-0">
         <a class="dropdown-item" href="{{ path('user_profile') }}"><i class="fa-fw fas fa-user"></i> Mein Profil</a>
         <a class="dropdown-item" href="{{ path('shop_orders') }}"><i class="fas fa-shopping-cart"></i> Meine Tickets</a>
-        <a class="dropdown-item" href="{{ path('catering_credit') }}"><i class="fas fa-utensils"></i> Catering Dashboard</a>
+        <a class="dropdown-item" href="{{ path('catering_credit') }}"><i class="fas fa-money-bill-1"></i> Catering Dashboard</a>
+        <a class="dropdown-item" href="{{ path('catering_kassa_products', {userId: app.user.user.uuid}) }}"><i class="fas fa-utensils"></i> Catering Kassa</a>
 
         {% if app.user.user.clans | length %}
             <div class="dropdown-divider"></div>
