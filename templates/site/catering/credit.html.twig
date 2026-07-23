@@ -11,6 +11,12 @@
                     <h1>Meine Catering Übersicht</h1>
                 </div>
                 <div>
+                    {% if pizza_ordering_open() %}
+                        <a href="{{ path('catering_pizza') }}" class="btn btn-primary">
+                            <i class="fas fa-pizza-slice"></i>
+                            Pizzabestellung für Samstag, bis {{ pizza_deadline()|date('H') }}:00
+                        </a>
+                    {% endif %}
                     <a href="{{ path('catering_orders') }}" class="btn btn-secondary">
                         <i class="fas fa-arrow-left"></i> Bestellungen anzeigen
                     </a>

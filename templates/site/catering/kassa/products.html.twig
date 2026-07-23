@@ -19,6 +19,13 @@
         </h3>
     </div>
 
+    {% if pizza_ordering_open() %}
+        <a href="{{ path('catering_kassa_pizza', {userId: user.uuid}) }}" class="btn btn-primary btn-block">
+            <i class="fas fa-pizza-slice"></i>
+            Pizzabestellung für Samstag, bis {{ pizza_deadline()|date('H') }}:00
+        </a>
+    {% endif %}
+
     <!-- Foodflat Purchase Section -->
     {% if not user_has_foodflat and foodflat_addon %}
     <div style="background: #f8f9fa; border: 1px solid #dee2e6; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
