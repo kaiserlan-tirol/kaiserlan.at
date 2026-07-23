@@ -37,6 +37,27 @@ class UserTransactionRepository extends ServiceEntityRepository
             ->getResult();
     }
 
+    public function findCateringPizzaTransactions(
+        UuidInterface $user,
+        DateTimeImmutable $from,
+        DateTimeImmutable $to
+    ): array {
+        return $this->createQueryBuilder('t')
+            ->andWhere('t.user = :user')
+            ->andWhere('t.category = :category')
+            ->andWhere('t.createdAt BETWEEN :from AND :to')
+            ->andWhere('(t.description LIKE :pizza OR t.description LIKE :cancellation)')
+            ->setParameter('user', $user)
+            ->setParameter('category', UserTransaction::CATEGORY_CATERING)
+            ->setParameter('from', $from)
+            ->setParameter('to', $to)
+            ->setParameter('pizza', 'Pizza:%')
+            ->setParameter('cancellation', 'Storno Pizza:%')
+            ->orderBy('t.createdAt', 'ASC')
+            ->getQuery()
+            ->getResult();
+    }
+
     /**
      * Calculate total catering balance for a user
      */
