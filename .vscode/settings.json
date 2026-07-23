@@ -1,0 +1,27 @@
+{
+    "editor.tabSize": 4, // Looking at the existing codebase, 4 spaces per tab seems to be the standard
+    // "editor.insertSpaces": true,  // Use spaces instead of tab characters
+
+    "editor.defaultFormatter": null, // Disable default formatter
+    "files.trimTrailingWhitespace": true,
+    "files.trimFinalNewlines": true,
+    "editor.formatOnSave": true,
+    "editor.detectIndentation": false, // Disable automatic detection of indentation
+    "[javascript]": {
+        "editor.defaultFormatter": "esbenp.prettier-vscode"
+    },
+    "[typescript]": {
+        "editor.defaultFormatter": "esbenp.prettier-vscode"
+    },
+    "sonarlint.connectedMode.project": {
+        "connectionId": "sinpex-dev",
+        "projectKey": "sinpex-dev_cases-nestjs-microservice"
+    },
+    "[jsonc]": {
+        "editor.defaultFormatter": "esbenp.prettier-vscode"
+    },
+    "typescript.preferences.autoImportFileExcludePatterns": [
+        "node:test",
+        "date-fns/locale"
+    ]
+}

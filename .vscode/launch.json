@@ -1,0 +1,49 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "node",
+            "request": "launch",
+            "name": "Launch NestJS App",
+            "runtimeExecutable": "npm",
+            "runtimeArgs": ["run", "start:debug"],
+            "port": 9230,
+            "console": "integratedTerminal",
+            "internalConsoleOptions": "neverOpen",
+            "skipFiles": ["<node_internals>/**"],
+            "restart": true,
+            "sourceMaps": true,
+            "outFiles": ["${workspaceFolder}/dist/**/*.js"]
+        },
+        {
+            "type": "node",
+            "request": "attach",
+            "name": "Attach to Docker (9230)",
+            "address": "localhost",
+            "port": 9230,
+            "localRoot": "${workspaceFolder}",
+            "remoteRoot": "/app",
+            "restart": true,
+            "sourceMaps": true
+        },
+        {
+            "type": "node",
+            "request": "attach",
+            "name": "Attach to Docker (9229)",
+            "address": "localhost",
+            "port": 9229,
+            "localRoot": "${workspaceFolder}",
+            "remoteRoot": "/app",
+            "restart": true,
+            "sourceMaps": true
+        },
+        {
+            "type": "node",
+            "request": "attach",
+            "name": "Attach to NestJS",
+            "port": 9229,
+            "restart": true,
+            "skipFiles": ["<node_internals>/**"]
+        }
+    ]
+}

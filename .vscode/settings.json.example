@@ -1,0 +1,37 @@
+{
+    // Editor Configuration
+    "editor.tabSize": 2,
+    "editor.insertSpaces": true,
+    "editor.detectIndentation": false,
+    "editor.formatOnSave": true,
+    "editor.defaultFormatter": null,
+
+    // File Management
+    "files.trimTrailingWhitespace": true,
+    "files.trimFinalNewlines": true,
+
+    // Language-specific Formatters
+    "[javascript]": {
+        "editor.defaultFormatter": "esbenp.prettier-vscode"
+    },
+    "[typescript]": {
+        "editor.defaultFormatter": "esbenp.prettier-vscode"
+    },
+    "[json]": {
+        "editor.defaultFormatter": "esbenp.prettier-vscode"
+    },
+    "[jsonc]": {
+        "editor.defaultFormatter": "esbenp.prettier-vscode"
+    },
+
+    // SonarLint Configuration (Optional - Configure for your organization)
+    // Uncomment and update if using SonarLint Connected Mode
+    // "sonarlint.connectedMode.project": {
+    //     "connectionId": "your-organization",
+    //     "projectKey": "your-project-key"
+    // },
+
+    // TypeScript Configuration
+    "typescript.tsdk": "node_modules/typescript/lib",
+    "typescript.enablePromptUseWorkspaceTsdk": true
+}

@@ -1,0 +1,23 @@
+{
+  "servers": {
+    "groundcover": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "mcp-remote@0.1.8",
+        "https://mcp.groundcover.com/api/mcp",
+        "54278",
+        "--header",
+        "X-Timezone:YOUR_TIMEZONE",
+        "--header",
+        "X-Tenant-UUID:YOUR_TENANT_UUID",
+        "--header",
+        "X-Backend-Id:YOUR_BACKEND_ID"
+      ]
+    },
+     "atlassian": {
+      "type": "http",
+      "url": "https://mcp.atlassian.com/v1/sse"
+    }
+  }
+}
