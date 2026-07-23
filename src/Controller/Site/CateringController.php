@@ -7,27 +7,32 @@ use App\Entity\User;
 use App\Exception\OrderLifecycleException;
 use App\Form\CateringCheckoutType;
 use App\Service\CateringService;
+use App\Service\PizzaService;
 use App\Service\SettingService;
 use Psr\Log\LoggerInterface;
 use Sensio\Bundle\FrameworkExtraBundle\Configuration\IsGranted;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 use Symfony\Component\Routing\Annotation\Route;
 
 #[Route(path: '/catering', name: 'catering')]
 class CateringController extends AbstractController
 {
     private readonly CateringService $cateringService;
+    private readonly PizzaService $pizzaService;
     private readonly SettingService $settingService;
     private readonly LoggerInterface $logger;
 
     public function __construct(
         CateringService $cateringService,
+        PizzaService $pizzaService,
         SettingService $settingService,
         LoggerInterface $logger
     ) {
         $this->cateringService = $cateringService;
+        $this->pizzaService = $pizzaService;
         $this->settingService = $settingService;
         $this->logger = $logger;
     }
@@ -87,6 +92,47 @@ class CateringController extends AbstractController
             'form' => $form->createView(),
             'products' => $products,
             'userHasFlatrate' => $userHasFlatrate,
+        ]);
+    }
+
+    #[IsGranted('IS_AUTHENTICATED_REMEMBERED')]
+    #[Route(path: '/pizza', name: '_pizza', methods: ['GET', 'POST'])]
+    public function pizza(Request $request): Response
+    {
+        if (!$this->pizzaService->isOrderingOpen()) {
+            $this->addFlash('warning', 'Pizzabestellung ist derzeit nicht möglich.');
+
+            return $this->redirectToRoute('catering_credit');
+        }
+
+        /** @var User $user */
+        $user = $this->getUser()->getUser();
+
+        if ($request->isMethod('POST')) {
+            try {
+                $this->pizzaService->bookOrder($user, $request->request->all('cart'));
+                $this->addFlash('success', 'Pizzabestellung wurde gespeichert.');
+            } catch (BadRequestHttpException $e) {
+                $this->addFlash('error', $e->getMessage());
+            }
+
+            return $this->redirectToRoute('catering_credit');
+        }
+
+        $pizzas = $this->pizzaService->getPizzas();
+        $currentSelection = $this->pizzaService->getCurrentSelection($user);
+        $selection = [];
+        foreach ($pizzas as $index => $pizza) {
+            if (isset($currentSelection[$pizza['name']])) {
+                $selection[$index] = $currentSelection[$pizza['name']]['qty'];
+            }
+        }
+
+        return $this->render('site/catering/pizza.html.twig', [
+            'pizzas' => $pizzas,
+            'selection' => $selection,
+            'action' => $this->generateUrl('catering_pizza'),
+            'deadline' => $this->pizzaService->getDeadline(),
         ]);
     }
 

@@ -8,6 +8,7 @@ use App\Entity\User;
 use App\Entity\CateringOrder;
 use App\Repository\TicketRepository;
 use App\Service\CateringService;
+use App\Service\PizzaService;
 use App\Service\SettingService;
 use App\Service\ShopService;
 use App\Service\TicketService;
@@ -17,6 +18,7 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpFoundation\JsonResponse;
+use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 use Symfony\Component\Routing\Annotation\Route;
 use Doctrine\ORM\EntityManagerInterface;
 use Ramsey\Uuid\Uuid;
@@ -25,6 +27,7 @@ use Ramsey\Uuid\Uuid;
 class CateringKassaController extends AbstractController
 {
     private readonly CateringService $cateringService;
+    private readonly PizzaService $pizzaService;
     private readonly CateringProductRepository $productRepository;
     private readonly IdmManager $idmManager;
     private readonly EntityManagerInterface $entityManager;
@@ -35,6 +38,7 @@ class CateringKassaController extends AbstractController
 
     public function __construct(
         CateringService $cateringService,
+        PizzaService $pizzaService,
         CateringProductRepository $productRepository,
         IdmManager $idmManager,
         EntityManagerInterface $entityManager,
@@ -44,6 +48,7 @@ class CateringKassaController extends AbstractController
         TicketService $ticketService
     ) {
         $this->cateringService = $cateringService;
+        $this->pizzaService = $pizzaService;
         $this->productRepository = $productRepository;
         $this->idmManager = $idmManager;
         $this->entityManager = $entityManager;
@@ -217,6 +222,61 @@ class CateringKassaController extends AbstractController
             
             return $this->redirectToRoute('catering_kassa_scan');
         }
+    }
+
+    #[Route('/pizza/{userId}', name: 'pizza', methods: ['GET', 'POST'])]
+    public function pizza(Request $request, string $userId): Response
+    {
+        try {
+            $userUuid = Uuid::fromString(urldecode(trim($userId)));
+        } catch (\InvalidArgumentException) {
+            $this->addFlash('error', 'Ungültige Benutzer-ID.');
+
+            return $this->redirectToRoute('catering_kassa_scan');
+        }
+
+        $userRepo = $this->idmManager->getRepository(User::class);
+        $user = $userRepo->findOneById($userUuid);
+        if (!$user) {
+            $this->addFlash('error', 'Benutzer nicht gefunden.');
+
+            return $this->redirectToRoute('catering_kassa_scan');
+        }
+
+        if (!$this->pizzaService->isOrderingOpen()) {
+            $this->addFlash('warning', 'Pizzabestellung ist derzeit nicht möglich.');
+
+            return $this->redirectToRoute('catering_kassa_products', ['userId' => $userId]);
+        }
+
+        if ($request->isMethod('POST')) {
+            try {
+                $this->pizzaService->bookOrder($user, $request->request->all('cart'));
+                $this->addFlash('success', 'Pizzabestellung wurde gespeichert.');
+            } catch (BadRequestHttpException $e) {
+                $this->addFlash('error', $e->getMessage());
+            }
+
+            return $this->redirectToRoute('catering_kassa_products', ['userId' => $userId]);
+        }
+
+        $pizzas = $this->pizzaService->getPizzas();
+        $currentSelection = $this->pizzaService->getCurrentSelection($user);
+        $selection = [];
+        foreach ($pizzas as $index => $pizza) {
+            if (isset($currentSelection[$pizza['name']])) {
+                $selection[$index] = $currentSelection[$pizza['name']]['qty'];
+            }
+        }
+
+        return $this->render('site/catering/kassa/pizza.html.twig', [
+            'user' => $user,
+            'pizzas' => $pizzas,
+            'selection' => $selection,
+            'action' => $this->generateUrl('catering_kassa_pizza', ['userId' => $userId]),
+            'deadline' => $this->pizzaService->getDeadline(),
+            'current_credit' => $this->cateringService->getUserCredit($user),
+        ]);
     }
 
     #[Route('/payment/{userId}', name: 'payment')]
