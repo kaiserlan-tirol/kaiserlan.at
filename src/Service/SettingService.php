@@ -109,6 +109,15 @@ class SettingService
         'lan.checklist' => [self::TB_DESCRIPTION => 'Checklist Einträge. Zeilen Bindestrich davor werden als Überschrift ausgegeben.', self::TB_TYPE => SettingType::HTML],
 
         'catering.allow_negative_credit' => [self::TB_DESCRIPTION => 'Negatives Catering-Guthaben erlauben', self::TB_TYPE => SettingType::Bool],
+
+        'pizza.list' => [
+            self::TB_DESCRIPTION => 'Pizzen, je Zeile: name;beschreibung;preis (Preis in Euro, z. B. 8,50)',
+            self::TB_TYPE => SettingType::TEXTAREA,
+        ],
+        'pizza.order_open_until' => [
+            self::TB_DESCRIPTION => 'Pizzabestellung möglich bis (Deadline, Samstag)',
+            self::TB_TYPE => SettingType::DateTimeLocal,
+        ],
     ];
 
     private readonly LoggerInterface $logger;
