@@ -60,6 +60,9 @@
                     <a class="nav-link {% if app.request.get('_route') == 'admin_catering' %}active{% endif %}" href="{{ path('admin_catering') }}"><i class="fas fa-list fa-fw"></i> Bestellungen </a>
                 </li>
                 <li class="nav-item">
+                    <a class="nav-link {% if app.request.get('_route') == 'admin_catering_pizza' %}active{% endif %}" href="{{ path('admin_catering_pizza') }}"><i class="fas fa-pizza-slice fa-fw"></i> Pizzabestellungen </a>
+                </li>
+                <li class="nav-item">
                     <a class="nav-link {% if app.request.get('_route') == 'admin_catering_credit_management' %}active{% endif %}" href="{{ path('admin_catering_credit_management') }}"><i class="fas fa-plus fa-fw"></i> Guthaben / Zahlungen </a>
                 </li>
                 <li class="nav-item">

@@ -84,33 +84,63 @@ class PizzaService
             return [];
         }
 
-        $selection = [];
         $transactions = $this->userTransactionRepository->findCateringPizzaTransactions(
             $user->getUuid(),
             $openFrom,
             $deadline
         );
 
-        foreach ($transactions as $transaction) {
-            $description = $transaction->getDescription();
+        return $this->buildSelection($transactions);
+    }
 
-            if (str_starts_with($description, 'Storno Pizza: ')) {
-                $description = substr($description, strlen('Storno Pizza: '));
-                $multiplier = -1;
-            } elseif (str_starts_with($description, 'Pizza: ')) {
-                $description = substr($description, strlen('Pizza: '));
-                $multiplier = 1;
-            } else {
-                continue;
-            }
-
-            [$name, $quantity] = $this->parseDescription($description);
-            $selection[$name] ??= ['qty' => 0, 'owed' => 0];
-            $selection[$name]['qty'] += $multiplier * $quantity;
-            $selection[$name]['owed'] += $transaction->getAmount();
+    public function getOrderOverview(): array
+    {
+        $openFrom = $this->getOpenFrom();
+        $deadline = $this->getDeadline();
+        if ($openFrom === null || $deadline === null) {
+            return ['items' => [], 'total' => 0];
         }
 
-        return array_filter($selection, static fn (array $item): bool => $item['qty'] > 0);
+        $transactions = $this->userTransactionRepository->findCateringPizzaTransactions(
+            null,
+            $openFrom,
+            $deadline
+        );
+
+        $byUser = [];
+        foreach ($transactions as $transaction) {
+            $userUuid = $transaction->getUser();
+            if ($userUuid === null) {
+                continue;
+            }
+            $byUser[$userUuid->toString()][] = $transaction;
+        }
+
+        $prices = [];
+        foreach ($this->getPizzas() as $pizza) {
+            $prices[$pizza['name']] = $pizza['price'];
+        }
+
+        $items = [];
+        $total = 0;
+        foreach ($byUser as $uuid => $userTransactions) {
+            foreach ($this->buildSelection($userTransactions) as $name => $selection) {
+                $items[$name] ??= ['qty' => 0, 'orderers' => [], 'total' => 0];
+                $items[$name]['qty'] += $selection['qty'];
+                $items[$name]['orderers'][$uuid] = $selection['qty'];
+                $owed = max(0, -$selection['owed']);
+                $items[$name]['total'] += $owed;
+                $total += $owed;
+            }
+        }
+
+        foreach ($items as $name => $item) {
+            $items[$name]['unitPrice'] = $prices[$name] ?? intdiv($item['total'], max(1, $item['qty']));
+        }
+
+        ksort($items);
+
+        return ['items' => $items, 'total' => $total];
     }
 
     public function getSelectionByIndex(User $user): array
@@ -170,6 +200,32 @@ class PizzaService
         } catch (\Exception) {
             return null;
         }
+    }
+
+    private function buildSelection(array $transactions): array
+    {
+        $selection = [];
+
+        foreach ($transactions as $transaction) {
+            $description = $transaction->getDescription();
+
+            if (str_starts_with($description, 'Storno Pizza: ')) {
+                $description = substr($description, strlen('Storno Pizza: '));
+                $multiplier = -1;
+            } elseif (str_starts_with($description, 'Pizza: ')) {
+                $description = substr($description, strlen('Pizza: '));
+                $multiplier = 1;
+            } else {
+                continue;
+            }
+
+            [$name, $quantity] = $this->parseDescription($description);
+            $selection[$name] ??= ['qty' => 0, 'owed' => 0];
+            $selection[$name]['qty'] += $multiplier * $quantity;
+            $selection[$name]['owed'] += $transaction->getAmount();
+        }
+
+        return array_filter($selection, static fn (array $item): bool => $item['qty'] > 0);
     }
 
     private function parseDescription(string $description): array

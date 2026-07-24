@@ -38,24 +38,27 @@ class UserTransactionRepository extends ServiceEntityRepository
     }
 
     public function findCateringPizzaTransactions(
-        UuidInterface $user,
+        ?UuidInterface $user,
         DateTimeImmutable $from,
         DateTimeImmutable $to
     ): array {
-        return $this->createQueryBuilder('t')
-            ->andWhere('t.user = :user')
+        $qb = $this->createQueryBuilder('t')
             ->andWhere('t.category = :category')
             ->andWhere('t.createdAt BETWEEN :from AND :to')
             ->andWhere('(t.description LIKE :pizza OR t.description LIKE :cancellation)')
-            ->setParameter('user', $user)
             ->setParameter('category', UserTransaction::CATEGORY_CATERING)
             ->setParameter('from', $from)
             ->setParameter('to', $to)
             ->setParameter('pizza', 'Pizza:%')
             ->setParameter('cancellation', 'Storno Pizza:%')
-            ->orderBy('t.createdAt', 'ASC')
-            ->getQuery()
-            ->getResult();
+            ->orderBy('t.createdAt', 'ASC');
+
+        if ($user !== null) {
+            $qb->andWhere('t.user = :user')
+                ->setParameter('user', $user);
+        }
+
+        return $qb->getQuery()->getResult();
     }
 
     /**

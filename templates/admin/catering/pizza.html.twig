@@ -1,0 +1,55 @@
+{% extends 'admin/adminBase.html.twig' %}
+
+{% block title %}Pizzabestellungen - KLMS - Admin{% endblock %}
+{% block siteheading %}<i class="fas fa-pizza-slice"></i> Pizzabestellungen{% endblock %}
+{% block main %}
+    <div class="row">
+        <div class="col-12">
+            <div class="mb-2">
+                {% if ordering_open %}
+                    <span class="badge badge-success">Bestellung offen bis {{ deadline | date('d.m.y H:i') }}</span>
+                {% elseif deadline %}
+                    <span class="badge badge-secondary">Bestellung geschlossen (Deadline: {{ deadline | date('d.m.y H:i') }})</span>
+                {% else %}
+                    <span class="badge badge-warning">Kein Bestellfenster konfiguriert</span>
+                {% endif %}
+            </div>
+            <div class="card">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th class="text-nowrap w-1">Anzahl</th>
+                            <th class="w-25">Pizza</th>
+                            <th>Besteller</th>
+                            <th class="text-nowrap text-right">Preis pro Pizza</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    {% for name, item in items %}
+                        <tr>
+                            <td class="text-center">{{ item.qty }}</td>
+                            <td>{{ name }}</td>
+                            <td>
+                                {%- for uuid, qty in item.orderers -%}
+                                    {{ uuid | username }}{% if qty > 1 %} (×{{ qty }}){% endif %}{% if not loop.last %}, {% endif %}
+                                {%- endfor -%}
+                            </td>
+                            <td class="text-right">{{ (item.unitPrice/100) | format_currency('EUR') }}</td>
+                        </tr>
+                    {% else %}
+                        <tr>
+                            <td colspan="4" class="text-center text-muted">Keine Pizzabestellungen vorhanden.</td>
+                        </tr>
+                    {% endfor %}
+                    </tbody>
+                    <tfoot>
+                        <tr>
+                            <th colspan="3" class="text-right">Gesamtpreis</th>
+                            <th class="text-right">{{ (total/100) | format_currency('EUR') }}</th>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+    </div>
+{% endblock %}

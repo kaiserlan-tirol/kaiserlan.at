@@ -12,6 +12,7 @@ use App\Idm\IdmManager;
 use App\Idm\IdmRepository;
 use App\Repository\CateringOrderRepository;
 use App\Service\CateringService;
+use App\Service\PizzaService;
 use App\Service\TransactionService;
 use App\Service\EmailService;
 use App\Service\CachedQrCodeService;
@@ -30,6 +31,7 @@ use Psr\Log\LoggerInterface;
 #[Route(path: '/catering', name: 'catering')]
 class CateringController extends AbstractController {
     private readonly CateringService $cateringService;
+    private readonly PizzaService $pizzaService;
     private readonly TransactionService $transactionService;
     private readonly EmailService $emailService;
     private readonly SettingService $settingService;
@@ -44,6 +46,7 @@ class CateringController extends AbstractController {
 
     public function __construct(
         CateringService $cateringService,
+        PizzaService $pizzaService,
         TransactionService $transactionService,
         CateringOrderRepository $orderRepository,
         SerializerInterface $serializer,
@@ -55,6 +58,7 @@ class CateringController extends AbstractController {
         CachedQrCodeService $cachedQrCodeService
     ) {
         $this->cateringService = $cateringService;
+        $this->pizzaService = $pizzaService;
         $this->transactionService = $transactionService;
         $this->orderRepository = $orderRepository;
         $this->serializer = $serializer;
@@ -284,6 +288,19 @@ class CateringController extends AbstractController {
         fclose($output);
 
         return $response;
+    }
+
+    #[Route(path: '/pizza', name: '_pizza', methods: ['GET'])]
+    public function pizzaOrders(): Response
+    {
+        $overview = $this->pizzaService->getOrderOverview();
+
+        return $this->render('admin/catering/pizza.html.twig', [
+            'items' => $overview['items'],
+            'total' => $overview['total'],
+            'deadline' => $this->pizzaService->getDeadline(),
+            'ordering_open' => $this->pizzaService->isOrderingOpen(),
+        ]);
     }
 
     #[Route(path: '/order/create', name: '_order_create', methods: ['GET', 'POST'])]
