@@ -60,6 +60,7 @@ class SeatmapController extends AbstractController
             'dim' => $dim,
             'users' => $this->seatmapService->getSeatedUser($seats),
             'clans' => $this->seatmapService->getReservedClans($seats),
+            'sectors' => $this->seatRepository->findDistinctSectors(),
         ]);
     }
 
@@ -220,5 +221,35 @@ class SeatmapController extends AbstractController
         $response->headers->set('Content-Disposition', 'attachment; filename="seatmap.csv"');
 
         return $response;
+    }
+
+    #[Route(path: '/platzkarten', name: '_platzkarten', methods: ['GET'])]
+    public function platzkarten(Request $request): Response
+    {
+        $sector = $request->query->get('sector');
+        $sector = (is_string($sector) && $sector !== '') ? $sector : null;
+
+        $seats = $this->seatRepository->findTakenSeats();
+        if ($sector !== null) {
+            $seats = array_filter($seats, static fn (Seat $seat) => $seat->getSector() === $sector);
+        }
+
+        $users = $this->seatmapService->getSeatedUser($seats);
+
+        // Group resolvable owners by sector, preserving the sector/seatNumber ordering of findTakenSeats().
+        $groups = [];
+        foreach ($seats as $seat) {
+            $user = $users[$seat->getId()] ?? null;
+            if ($user === null) {
+                continue; // skip seats whose owner cannot be resolved (e.g. deleted IDM user)
+            }
+            $groups[$seat->getSector()][] = ['seat' => $seat, 'user' => $user];
+        }
+
+        return $this->render('admin/seatmap/platzkarten.html.twig', [
+            'groups' => $groups,
+            'sector' => $sector,
+            'total' => array_sum(array_map('count', $groups)),
+        ]);
     }
 }

@@ -66,6 +66,9 @@ class SettingService
         'lan.seatmap.styles.seat_bullet_size' => [self::TB_DESCRIPTION => 'Sesselgröße im Sitzplan (px)', self::TB_TYPE => SettingType::Integer, self::TB_DEFAULT_VALUE => 6],
         'lan.seatmap.styles.seat_multiple_seats_distance' => [self::TB_DESCRIPTION => 'Abstand der Sitzplätze (px)', self::TB_TYPE => SettingType::Integer, self::TB_DEFAULT_VALUE => 2],
 
+        'lan.platzkarten.text' => [self::TB_DESCRIPTION => 'Platzkarten: Information- und Infrastruktur-Text (HTML)', self::TB_TYPE => SettingType::HTML],
+        'lan.platzkarten.sponsors_image' => [self::TB_DESCRIPTION => 'Platzkarten: Sponsoren-Streifen (Bild für die Fußzeile)', self::TB_TYPE => SettingType::File],
+
         'lan.stats.show' => [self::TB_DESCRIPTION => 'Statistiken zur Anmeldung anzeigen', self::TB_TYPE => SettingType::Bool],
         'lan.stats.show_seats' => [self::TB_DESCRIPTION => 'Statistik über Sitzplätze statt Tickets', self::TB_TYPE => SettingType::Bool],
 

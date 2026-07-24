@@ -22,6 +22,16 @@
                         <button id="toggleEditmode" type="button" class="btn btn-sm btn-primary" data-edit-mode="false">Drag & Drop aktivieren</button>
                         <a class="btn btn-sm btn-primary" href="{{ path('admin_seatmap_export') }}" download>Sitzplan exportieren (.csv)</a>
                         <a class="btn btn-sm btn-primary" href="/seatmap?print=1" target="_blank">Druckansicht</a>
+                        {% if sectors is not empty %}
+                            <select class="form-control form-control-sm d-inline-block" style="width:auto;" aria-label="Platzkarten drucken"
+                                    onchange="if(this.value){window.open(this.value,'_blank');this.selectedIndex=0;}">
+                                <option value="">Platzkarten…</option>
+                                <option value="{{ path('admin_seatmap_platzkarten') }}">Alle Blöcke</option>
+                                {% for s in sectors %}
+                                    <option value="{{ path('admin_seatmap_platzkarten', {sector: s}) }}">Block {{ s }}</option>
+                                {% endfor %}
+                            </select>
+                        {% endif %}
                     </div>
                 </div>
             </div>

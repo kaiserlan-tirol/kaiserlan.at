@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Platzkarten{% if sector %} - Block {{ sector }}{% else %} - alle Blöcke{% endif %}</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Arial', 'Helvetica', sans-serif;
+            background: #e9e9e9;
+            color: #000;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+        }
+
+        /* ---------- Bildschirm-Steuerung (nicht gedruckt) ---------- */
+        .no-print {
+            max-width: 210mm;
+            margin: 0 auto;
+            padding: 16px 0;
+        }
+        .toolbar {
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,.1);
+            padding: 16px 20px;
+            margin-bottom: 16px;
+        }
+        .toolbar h1 { font-size: 18px; margin-bottom: 6px; }
+        .toolbar p { color: #555; font-size: 13px; margin: 2px 0; }
+        .toolbar ul { margin: 8px 0 0 18px; color: #555; font-size: 13px; }
+        .btn {
+            display: inline-block; cursor: pointer;
+            background: #007bff; color: #fff;
+            border: none; border-radius: 5px;
+            padding: 9px 18px; margin-top: 10px;
+            font-size: 14px; text-decoration: none;
+        }
+        .btn:hover { background: #0056b3; }
+        .empty-hint { background: #fff3cd; border: 1px solid #ffe69c; color: #664d03;
+            border-radius: 6px; padding: 14px 18px; }
+
+        /* ---------- A4-Blatt mit 4x A6 (2x2) ---------- */
+        .sheet {
+            width: 190mm;            /* A4 (210mm) - 2x10mm Rand */
+            height: 277mm;           /* A4 (297mm) - 2x10mm Rand */
+            margin: 0 auto 16px;
+            background: #fff;
+            box-shadow: 0 2px 12px rgba(0,0,0,.15);
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            grid-template-rows: 1fr 1fr;
+            overflow: hidden;
+        }
+
+        /* ---------- Einzelne Platzkarte (A6) ---------- */
+        .card {
+            border: 0.2mm solid #b0b0b0;   /* Hairline-Schnittkante */
+            padding: 5mm 5mm 4mm;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .sheet > .card:first-child {
+            border-right: none;
+            border-bottom: none;
+        }
+
+        .card__welcome { text-align: center; font-size: 11pt; margin-bottom: 1mm; }
+        .card__logo { text-align: center; margin-bottom: 2.5mm; }
+        .card__logo img { height: 15mm; max-width: 85%; object-fit: contain; }
+
+        .card__row { display: flex; align-items: baseline; margin-bottom: 1mm; }
+        .card__label { font-size: 12pt; width: 18mm; flex: 0 0 18mm; }
+        .card__value {
+            font-size: 21pt; font-weight: bold; line-height: 1.05;
+            overflow-wrap: anywhere; word-break: break-word;
+        }
+        .card__value--platz { font-size: 23pt; }
+
+        .card__info {
+            flex: 1 1 auto;
+            font-size: 9pt;
+            line-height: 1.2;
+            margin-top: 1.5mm;
+            overflow: hidden;
+        }
+        .card__info ul, .card__info ol { padding-left: 4.5mm; margin: 0.5mm 0; }
+        .card__info p { margin: 0.5mm 0; }
+        .card__info strong { font-weight: bold; }
+
+        .card__sponsors { margin-top: auto; padding-top: 2mm; text-align: center; }
+        .card__sponsors-title { font-size: 7pt; color: #333; margin-bottom: 1mm; }
+        .card__sponsors img { max-width: 100%; max-height: 12mm; object-fit: contain; }
+
+        @media print {
+            @page { size: A4; margin: 10mm; }
+            html, body { background: #fff; margin: 0; padding: 0; }
+            .no-print { display: none !important; }
+            .sheet {
+                margin: 0;
+                box-shadow: none;
+                page-break-after: always;
+                break-after: page;
+            }
+            .sheet:last-child { page-break-after: avoid; break-after: auto; }
+        }
+    </style>
+</head>
+<body>
+<div class="no-print">
+    <div class="toolbar">
+        <h1>Platzkarten{% if sector %} – Block {{ sector }}{% else %} – alle Blöcke{% endif %}</h1>
+        <p>{{ total }} Karte(n){% if not sector %} in {{ groups|length }} Block/Blöcken{% endif %} – 4 Karten (A6) pro A4-Seite.</p>
+        <ul>
+            <li>Im Druckdialog <strong>A4</strong>, Skalierung <strong>100 % / Tatsächliche Größe</strong> wählen.</li>
+            <li><strong>Hintergrundgrafiken</strong> aktivieren (Logo, Rahmen, Sponsoren).</li>
+            <li>Als Ziel <strong>„Als PDF speichern"</strong> wählen – ergibt ein mehrseitiges PDF für diesen Block.</li>
+        </ul>
+        <button type="button" class="btn" onclick="window.print()">🖨️ Drucken / Als PDF speichern</button>
+    </div>
+    {% if total == 0 %}
+        <div class="empty-hint">
+            Keine belegten Sitze{% if sector %} im Block „{{ sector }}"{% endif %} gefunden – es gibt nichts zu drucken.
+        </div>
+    {% endif %}
+</div>
+
+{% set logo_src = asset('build/images/KaiserLAN-Logo/KaiserLAN_horizontal_black_500px.png') %}
+{% set sponsors_image = settings.get('lan.platzkarten.sponsors_image') %}
+{% set info_text = settings.get('lan.platzkarten.text') %}
+{% set lanparty_name = settings.get('lan.party.name') %}
+
+{% for entries in groups %}
+    {% for row in entries|batch(4) %}
+        <div class="sheet">
+            {% for entry in row %}
+                <div class="card">
+                    <div class="card__welcome">Willkommen auf der {{ lanparty_name }}</div>
+                    <div class="card__logo">
+                        <img src="{{ logo_src }}" alt="KaiserLAN">
+                    </div>
+                    <div class="card__row">
+                        <span class="card__label">Gamer:</span>
+                        <span class="card__value">{{ entry.user.nickname }}</span>
+                    </div>
+                    <div class="card__row">
+                        <span class="card__label">Platz:</span>
+                        <span class="card__value card__value--platz">{{ entry.seat.sector }}-{{ entry.seat.seatNumber }}</span>
+                    </div>
+                    {% if info_text is not empty %}
+                        <div class="card__info">{{ info_text|raw }}</div>
+                    {% endif %}
+                    {% if sponsors_image is not empty %}
+                        <div class="card__sponsors">
+                            <div class="card__sponsors-title">Sponsored by</div>
+                            <img src="{{ sponsors_image }}" alt="Sponsoren">
+                        </div>
+                    {% endif %}
+                </div>
+            {% endfor %}
+        </div>
+    {% endfor %}
+{% endfor %}
+</body>
+</html>
