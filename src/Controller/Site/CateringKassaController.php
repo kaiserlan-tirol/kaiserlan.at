@@ -261,13 +261,7 @@ class CateringKassaController extends AbstractController
         }
 
         $pizzas = $this->pizzaService->getPizzas();
-        $currentSelection = $this->pizzaService->getCurrentSelection($user);
-        $selection = [];
-        foreach ($pizzas as $index => $pizza) {
-            if (isset($currentSelection[$pizza['name']])) {
-                $selection[$index] = $currentSelection[$pizza['name']]['qty'];
-            }
-        }
+        $selection = $this->pizzaService->getSelectionByIndex($user);
 
         return $this->render('site/catering/kassa/pizza.html.twig', [
             'user' => $user,

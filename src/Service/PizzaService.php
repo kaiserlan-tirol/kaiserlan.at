@@ -18,6 +18,7 @@ class PizzaService
     public function getPizzas(): array
     {
         $pizzas = [];
+        $pizzaNames = [];
         $lines = preg_split('/\R/', (string) $this->settingService->get('pizza.list'));
 
         foreach ($lines as $index => $line) {
@@ -36,10 +37,16 @@ class PizzaService
                 continue;
             }
 
+            $price = (int) round((float) $price * 100);
+            if ($price <= 0 || isset($pizzaNames[$name])) {
+                continue;
+            }
+
+            $pizzaNames[$name] = true;
             $pizzas[$index] = [
                 'name' => $name,
                 'description' => $description,
-                'price' => (int) round((float) $price * 100),
+                'price' => $price,
             ];
         }
 
@@ -86,7 +93,6 @@ class PizzaService
 
         foreach ($transactions as $transaction) {
             $description = $transaction->getDescription();
-            $multiplier = 0;
 
             if (str_starts_with($description, 'Storno Pizza: ')) {
                 $description = substr($description, strlen('Storno Pizza: '));
@@ -105,6 +111,20 @@ class PizzaService
         }
 
         return array_filter($selection, static fn (array $item): bool => $item['qty'] > 0);
+    }
+
+    public function getSelectionByIndex(User $user): array
+    {
+        $selection = [];
+        $currentSelection = $this->getCurrentSelection($user);
+
+        foreach ($this->getPizzas() as $index => $pizza) {
+            if (isset($currentSelection[$pizza['name']])) {
+                $selection[$index] = $currentSelection[$pizza['name']]['qty'];
+            }
+        }
+
+        return $selection;
     }
 
     public function bookOrder(User $user, array $qtyByIndex): void
