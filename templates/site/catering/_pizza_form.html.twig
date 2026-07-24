@@ -4,6 +4,7 @@
 </div>
 
 <form method="post" action="{{ action }}" id="pizza-order-form">
+    <input type="hidden" name="_token" value="{{ csrf_token('pizza_order') }}">
     <div class="card">
         <div class="card-header">
             <h5>Verfügbare Pizzen</h5>
@@ -63,6 +64,9 @@ document.addEventListener('DOMContentLoaded', function() {
     document.querySelectorAll('#pizza-order-form .pizza-quantity').forEach(function(input) {
         input.addEventListener('input', updatePizzaTotal);
         input.addEventListener('change', updatePizzaTotal);
+    });
+    document.getElementById('pizza-order-form').addEventListener('submit', function() {
+        this.querySelector('button[type="submit"]').disabled = true;
     });
     updatePizzaTotal();
 });

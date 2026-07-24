@@ -109,6 +109,12 @@ class CateringController extends AbstractController
         $user = $this->getUser()->getUser();
 
         if ($request->isMethod('POST')) {
+            if (!$this->isCsrfTokenValid('pizza_order', $request->request->get('_token'))) {
+                $this->addFlash('error', 'Ungültiges Formular.');
+
+                return $this->redirectToRoute('catering_credit');
+            }
+
             try {
                 $this->pizzaService->bookOrder($user, $request->request->all('cart'));
                 $this->addFlash('success', 'Pizzabestellung wurde gespeichert.');
@@ -120,13 +126,7 @@ class CateringController extends AbstractController
         }
 
         $pizzas = $this->pizzaService->getPizzas();
-        $currentSelection = $this->pizzaService->getCurrentSelection($user);
-        $selection = [];
-        foreach ($pizzas as $index => $pizza) {
-            if (isset($currentSelection[$pizza['name']])) {
-                $selection[$index] = $currentSelection[$pizza['name']]['qty'];
-            }
-        }
+        $selection = $this->pizzaService->getSelectionByIndex($user);
 
         return $this->render('site/catering/pizza.html.twig', [
             'pizzas' => $pizzas,
