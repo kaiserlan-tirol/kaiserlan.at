@@ -28,7 +28,7 @@ and feel wie die normale Catering-Bestellung (`order.html.twig`).
    `Pizza:`-Transaktionen im Fenster. Keine per-User-Settings.
 8. **Admin**: **generische Settings-UI wiederverwenden** — `pizza.list` (TEXTAREA)
    und `pizza.order_open_until` (DateTimeLocal) in der Registry registrieren →
-   erscheinen automatisch als Gruppe „pizza“ unter *Einstellungen*. Keine eigene
+   erscheinen automatisch als Gruppe „pizza“ unter _Einstellungen_. Keine eigene
    Admin-Seite, kein Sidenav-Eintrag.
 9. **Button-Label**: Wochentag fix „Samstag“, Uhrzeit dynamisch aus
    `pizza.order_open_until`: `Pizzabestellung für Samstag, bis {HH}:00`.
@@ -90,11 +90,11 @@ Abhängigkeiten: `CateringService`, `SettingService`, `UserTransactionRepository
     (Controller fängt und zeigt Flash-Fehler).
   - **Storno**: für jeden aktuell live gebuchten Namen (`getCurrentSelection`)
     `CateringService::addUserCredit(user, |owed|, "Storno Pizza: {name}"
-    [+ " (×{qty})" wenn qty>1])`. Reversiert exakt den im Ledger stehenden Betrag
+[+ " (×{qty})" wenn qty>1])`. Reversiert exakt den im Ledger stehenden Betrag
     (preis-drift-sicher).
   - **Neu buchen**: für jeden Index mit `qty > 0` (Pizza aus `getPizzas()[index]`):
     `CateringService::deductUserCredit(user, qty*price, null, "Pizza: {name}"
-    [+ " (×{qty})" wenn qty>1])`.
+[+ " (×{qty})" wenn qty>1])`.
   - Reihenfolge: erst komplett stornieren, dann neu buchen (Netto = neue Auswahl).
 
 ## Repository: `src/Repository/UserTransactionRepository.php`
@@ -107,6 +107,7 @@ public function findCateringPizzaTransactions(
     UuidInterface $user, \DateTimeImmutable $from, \DateTimeImmutable $to
 ): array
 ```
+
 Query: `user = :user AND category = 'catering' AND createdAt BETWEEN :from AND :to
 AND (description LIKE 'Pizza:%' OR description LIKE 'Storno Pizza:%')`,
 sortiert nach `createdAt ASC`.
@@ -130,6 +131,7 @@ Controller-Änderung sichtbar geschaltet werden:
 #[Route(path: '/pizza', name: '_pizza', methods: ['GET', 'POST'])]  // catering_pizza
 public function pizza(Request $request): Response
 ```
+
 - User = `getUser()->getUser()`.
 - Guard: `!PizzaService::isOrderingOpen()` → Flash-Warnung + Redirect `catering_credit`.
 - POST: `cart = $request->request->all('cart')` (index→menge) →
@@ -143,6 +145,7 @@ public function pizza(Request $request): Response
 #[Route('/pizza/{userId}', name: 'pizza', methods: ['GET', 'POST'])]  // catering_kassa_pizza
 public function pizza(Request $request, string $userId): Response
 ```
+
 - User = gescannter User (UUID-Auflösung wie in `products()`), kein `IsGranted`
   (Kiosk, wie die übrigen Kassa-Routen).
 - Guard/POST wie oben; Redirect nach POST → `catering_kassa_products` mit `userId`.
@@ -166,9 +169,10 @@ public function pizza(Request $request, string $userId): Response
 
 - **`templates/site/catering/kassa/products.html.twig`** (Button ergänzen)
   Nach dem User-Info-Header:
+
   ```twig
   {% if pizza_ordering_open() %}
-    <a href="{{ path('catering_kassa_pizza', {userId: user.uuid}) }}" class="btn btn-primary btn-block">
+    <a href="{{ path('catering_kassa_pizza', {userId: user.uuid}) }}" class="btn btn-primary btn-block" style="border-radius: 8px;">
       <i class="fas fa-pizza-slice"></i>
       Pizzabestellung für Samstag, bis {{ pizza_deadline()|date('H') }}:00
     </a>
@@ -220,6 +224,7 @@ php bin/console lint:twig templates/site/catering
 php bin/console lint:container      # prüft Autowiring/Typen von PizzaService + PizzaExtension
 php -l src/Service/PizzaService.php  # Syntax jeder geänderten/neuen PHP-Datei
 ```
+
 Keine Tests (per `.ai/general/instructions.md`).
 
 ## Verifizierung (manuell, docker-compose)
@@ -238,18 +243,18 @@ Keine Tests (per `.ai/general/instructions.md`).
 
 ## Geänderte/neue Dateien
 
-| Datei | Änderung |
-|---|---|
-| `src/Service/SettingService.php` | 2 Registry-Keys ergänzen |
-| `src/Service/PizzaService.php` | **neu** |
-| `src/Repository/UserTransactionRepository.php` | `findCateringPizzaTransactions()` |
-| `src/Twig/PizzaExtension.php` | **neu** |
-| `src/Controller/Site/CateringController.php` | Action `pizza()` |
-| `src/Controller/Site/CateringKassaController.php` | Action `pizza()` |
-| `templates/site/catering/_pizza_form.html.twig` | **neu** |
-| `templates/site/catering/pizza.html.twig` | **neu** |
-| `templates/site/catering/kassa/pizza.html.twig` | **neu** |
-| `templates/site/catering/kassa/products.html.twig` | Button |
-| `templates/site/catering/credit.html.twig` | Button |
+| Datei                                              | Änderung                          |
+| -------------------------------------------------- | --------------------------------- |
+| `src/Service/SettingService.php`                   | 2 Registry-Keys ergänzen          |
+| `src/Service/PizzaService.php`                     | **neu**                           |
+| `src/Repository/UserTransactionRepository.php`     | `findCateringPizzaTransactions()` |
+| `src/Twig/PizzaExtension.php`                      | **neu**                           |
+| `src/Controller/Site/CateringController.php`       | Action `pizza()`                  |
+| `src/Controller/Site/CateringKassaController.php`  | Action `pizza()`                  |
+| `templates/site/catering/_pizza_form.html.twig`    | **neu**                           |
+| `templates/site/catering/pizza.html.twig`          | **neu**                           |
+| `templates/site/catering/kassa/pizza.html.twig`    | **neu**                           |
+| `templates/site/catering/kassa/products.html.twig` | Button                            |
+| `templates/site/catering/credit.html.twig`         | Button                            |
 
 Keine DB-Migration.

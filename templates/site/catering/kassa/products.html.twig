@@ -19,28 +19,32 @@
         </h3>
     </div>
 
-    {% if pizza_ordering_open() %}
-        <a href="{{ path('catering_kassa_pizza', {userId: user.uuid}) }}" class="btn btn-primary btn-block">
-            <i class="fas fa-pizza-slice"></i>
-            Pizzabestellung für Samstag, bis {{ pizza_deadline()|date('H') }}:00
-        </a>
-    {% endif %}
+    {% if pizza_ordering_open() or (not user_has_foodflat and foodflat_addon) %}
+    <div style="display: flex; gap: 15px; margin-bottom: 20px;">
+        {% if pizza_ordering_open() %}
+            <a href="{{ path('catering_kassa_pizza', {userId: user.uuid}) }}" class="btn btn-primary" style="flex: 1; display: flex; align-items: center; justify-content: center; text-align: center; white-space: normal; border-radius: 8px;">
+                <i class="fas fa-pizza-slice" style="margin-right: 8px;"></i>
+                Pizzabestellung für Samstag, bis {{ pizza_deadline()|date('H') }}:00
+            </a>
+        {% endif %}
 
-    <!-- Foodflat Purchase Section -->
-    {% if not user_has_foodflat and foodflat_addon %}
-    <div style="background: #f8f9fa; border: 1px solid #dee2e6; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
-        <div style="display: flex; align-items: center; justify-content: space-between;">
-            <div style="flex: 1;">
-                <strong style="font-size: 1rem; color: #495057;">
-                    <i class="fas fa-utensils" style="margin-right: 8px; color: #6c757d;"></i>
-                    Foodflat verfügbar
-                </strong>
-                <div style="font-size: 0.9rem; color: #6c757d; margin-top: 5px;">{{ foodflat_addon.description }}</div>
+        <!-- Foodflat Purchase Section -->
+        {% if not user_has_foodflat and foodflat_addon %}
+        <div style="flex: 1; background: #f8f9fa; border: 1px solid #dee2e6; padding: 15px; border-radius: 8px;">
+            <div style="display: flex; align-items: center; justify-content: space-between; height: 100%;">
+                <div style="flex: 1;">
+                    <strong style="font-size: 1rem; color: #495057;">
+                        <i class="fas fa-utensils" style="margin-right: 8px; color: #6c757d;"></i>
+                        Foodflat verfügbar
+                    </strong>
+                    <div style="font-size: 0.9rem; color: #6c757d; margin-top: 5px;">{{ foodflat_addon.description }}</div>
+                </div>
+                <button type="button" class="btn btn-outline-secondary btn-sm" id="buy-foodflat-btn" data-addon-id="{{ foodflat_addon.id }}" data-price="{{ foodflat_addon.price }}" style="white-space: nowrap; margin-left: 15px;">
+                    Kaufen ({{ (foodflat_addon.price/100) | format_currency('EUR') }})
+                </button>
             </div>
-            <button type="button" class="btn btn-outline-secondary btn-sm" id="buy-foodflat-btn" data-addon-id="{{ foodflat_addon.id }}" data-price="{{ foodflat_addon.price }}" style="white-space: nowrap; margin-left: 15px;">
-                Kaufen ({{ (foodflat_addon.price/100) | format_currency('EUR') }})
-            </button>
         </div>
+        {% endif %}
     </div>
     {% endif %}
 
@@ -322,21 +326,21 @@
 document.addEventListener('DOMContentLoaded', function() {
     const cart = {};
     const userCredit = {{ current_credit }};
-    
+
     // Session timeout management
     let inactivityTimer;
     let warningToastTimer;
     const sessionTimeout = 2 * 60 * 1000; // 2 minutes
     const warningTime = 10 * 1000; // Show warning 10 seconds before timeout
-    
+
     // Function to show toast notification
     function showToast(title, message, actionText = null, actionCallback = null) {
         const toastContainer = document.getElementById('toast-container');
-        
+
         // Create toast element
         const toast = document.createElement('div');
         toast.className = 'toast';
-        
+
         // Create toast content
         let toastHTML = `
             <div class="toast-icon">
@@ -346,18 +350,18 @@ document.addEventListener('DOMContentLoaded', function() {
                 <div class="toast-title">${title}</div>
                 <div class="toast-body">${message}</div>
         `;
-        
+
         // Add action button if provided
         if (actionText && actionCallback) {
             toastHTML += `<button class="toast-action">${actionText}</button>`;
         }
-        
+
         toastHTML += `</div>`;
         toast.innerHTML = toastHTML;
-        
+
         // Add to container
         toastContainer.appendChild(toast);
-        
+
         // Action button click handler
         if (actionText && actionCallback) {
             const actionButton = toast.querySelector('.toast-action');
@@ -368,12 +372,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 });
             }
         }
-        
+
         // Show toast with animation
         setTimeout(() => {
             toast.classList.add('show');
         }, 10);
-        
+
         // Function to remove the toast
         function removeToast() {
             toast.classList.remove('show');
@@ -383,84 +387,84 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             }, 300);
         }
-        
+
         // Auto remove after 10 seconds if not closed already
         setTimeout(removeToast, 10000);
-        
+
         return {
             close: removeToast
         };
     }
-    
+
     function resetInactivityTimer() {
         // Clear existing timers
         clearTimeout(inactivityTimer);
         clearTimeout(warningToastTimer);
-        
+
         // Set new timers
         warningToastTimer = setTimeout(() => {
             const toast = showToast(
-                "Session läuft ab", 
-                "Ihre Sitzung läuft in 10 Sekunden ab.", 
-                "Sitzung verlängern", 
+                "Session läuft ab",
+                "Ihre Sitzung läuft in 10 Sekunden ab.",
+                "Sitzung verlängern",
                 () => {
                     // Reset the timer when user clicks the action button
                     resetInactivityTimer();
                 }
             );
         }, sessionTimeout - warningTime);
-        
+
         inactivityTimer = setTimeout(() => {
             // Show final toast before redirecting
             showToast("Session abgelaufen", "Sie werden zur Startseite weitergeleitet...");
-            
+
             // Redirect after a short delay
             setTimeout(() => {
                 window.location.href = '{{ path("catering_kassa_index") }}';
             }, 2000);
         }, sessionTimeout);
     }
-    
+
     // Reset timer on any activity
     ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart', 'click'].forEach(event => {
         document.addEventListener(event, resetInactivityTimer, true);
     });
-    
+
     // Start the session timeout timer
     resetInactivityTimer();
-    
+
     function updateCart() {
         let total = 0;
         let count = 0;
-        
+
         // Update product rows and calculate totals
         document.querySelectorAll('.product-row').forEach(row => {
             const productId = row.dataset.productId;
             const price = parseInt(row.dataset.price);
             const quantity = cart[productId] || 0;
             const quantitySpan = row.querySelector('.quantity');
-            
+
             quantitySpan.textContent = quantity;
-            
+
             // Update row appearance
             if (quantity > 0) {
                 row.classList.add('table-success');
             } else {
                 row.classList.remove('table-success');
             }
-            
+
             // Update decrease button state
             const decreaseBtn = row.querySelector('.btn-decrease');
             decreaseBtn.disabled = quantity <= 0;
-            
+
             total += price * quantity;
             count += quantity;
         });
-        
+
         // Update cart summary
         // document.getElementById('cart-total').textContent = (total / 100).toFixed(2) + ' €';
         document.getElementById('cart-count').textContent = count;
-        
+
         // Update checkout button
         const checkoutBtn = document.getElementById('checkout-btn');
         if (count === 0) {
@@ -473,7 +477,7 @@ document.addEventListener('DOMContentLoaded', function() {
             checkoutBtn.style.background = 'linear-gradient(45deg, #28a745, #20c997)';
         }
     }
-    
+
     // Handle quantity changes
     document.addEventListener('click', function(e) {
         if (e.target.classList.contains('btn-increase')) {
@@ -493,26 +497,26 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
     });
-    
+
     // Handle checkout
     document.getElementById('checkout-btn').addEventListener('click', function() {
         if (this.disabled) return;
-        
+
         if (Object.keys(cart).length === 0) {
             alert('Bitte wähle mindestens ein Produkt aus.');
             return;
         }
-        
+
         // Create form data
         const formData = new FormData();
         Object.keys(cart).forEach(productId => {
             formData.append('cart[' + productId + ']', cart[productId]);
         });
-        
+
         // Show loading state
         this.disabled = true;
         this.innerHTML = '<i class="fas fa-spinner fa-spin" style="margin-right: 15px;"></i>Wird verarbeitet...';
-        
+
         // Submit checkout
         fetch('{{ path("catering_kassa_checkout", {userId: user.uuid}) }}', {
             method: 'POST',
@@ -535,7 +539,7 @@ document.addEventListener('DOMContentLoaded', function() {
             updateCart(); // Reset button state
         });
     });
-    
+
     // Initial cart update
     updateCart();
 
@@ -546,12 +550,12 @@ document.addEventListener('DOMContentLoaded', function() {
             const addonId = this.dataset.addonId;
             const price = parseInt(this.dataset.price);
             const priceEur = (price / 100).toFixed(2);
-            
+
             if (confirm('Möchtest du die Foodflat für ' + priceEur + ' € kaufen?\n\nDieser Betrag wird von deinem Guthaben abgezogen.')) {
                 // Show loading state
                 this.disabled = true;
                 this.innerHTML = '<i class="fas fa-spinner fa-spin" style="margin-right: 10px;"></i>Wird gebucht...';
-                
+
                 // Book the addon
                 fetch('{{ path("catering_kassa_book_addon", {userId: user.uuid, addonId: "__ADDON_ID__"}) }}'.replace('__ADDON_ID__', addonId), {
                     method: 'POST'
