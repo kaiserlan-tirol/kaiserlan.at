@@ -1,73 +1,206 @@
-<div class="alert alert-info">
-    <i class="fas fa-info-circle"></i>
-    Pizzabestellungen sind bis Samstag, {{ deadline|date('H') }}:00 möglich. Beim Speichern wird eine bestehende Auswahl ersetzt. Die Sammelbestellung wird zwischen 19 und 19:30 geliefert.
-</div>
-
 <form method="post" action="{{ action }}" id="pizza-order-form">
     <input type="hidden" name="_token" value="{{ csrf_token('pizza_order') }}">
-    <div class="card">
-        <div class="card-header">
-            <h5>Verfügbare Pizzen</h5>
-        </div>
-        <div class="card-body">
-            <div class="row">
+
+    <div class="product-list">
+        <table class="table table-hover">
+            <thead>
+                <tr>
+                    <th>Pizza</th>
+                    <th>Preis</th>
+                    <th>Menge</th>
+                </tr>
+            </thead>
+            <tbody>
                 {% for index, pizza in pizzas %}
-                    <div class="col-md-6 mb-3">
-                        <div class="card h-100">
-                            <div class="card-body">
-                                <h6 class="card-title">{{ pizza.name }}</h6>
-                                {% if pizza.description %}
-                                    <p class="card-text">{{ pizza.description }}</p>
-                                {% endif %}
-                                <div class="d-flex justify-content-between align-items-center">
-                                    <strong>{{ (pizza.price / 100)|format_currency('EUR') }}</strong>
-                                    <input
-                                        type="number"
-                                        name="cart[{{ index }}]"
-                                        value="{{ selection[index]|default(0) }}"
-                                        min="0"
-                                        class="form-control text-center pizza-quantity"
-                                        data-price="{{ pizza.price }}"
-                                        style="width: 80px;"
-                                    >
-                                </div>
+                    <tr class="product-row" data-price="{{ pizza.price }}">
+                        <td>
+                            <strong>{{ pizza.name }}</strong>
+                            {% if pizza.description %}
+                                <div class="small text-muted">{{ pizza.description }}</div>
+                            {% endif %}
+                        </td>
+                        <td>{{ (pizza.price/100) | format_currency('EUR') }}</td>
+                        <td>
+                            <div class="product-controls">
+                                <button type="button" class="btn btn-outline-secondary btn-quantity btn-decrease">-</button>
+                                <span class="quantity mx-3">0</span>
+                                <button type="button" class="btn btn-outline-secondary btn-quantity btn-increase">+</button>
+                                <input type="hidden" name="cart[{{ index }}]" value="{{ selection[index]|default(0) }}">
                             </div>
-                        </div>
-                    </div>
+                        </td>
+                    </tr>
                 {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Cart Summary -->
+    <div id="cart-summary">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; gap: 40px;">
+            <div>
+                <p style="font-size: 1.2rem; color: #666; margin-bottom: 5px;">Pizzen: <span id="cart-count" style="font-size: 1.3rem; font-weight: 600; color: #333;">0</span></p>
+                <p style="font-size: 0.9rem; color: #999; margin: 0;">Bestellbar bis Samstag, {{ deadline|date('H') }}:00 &ndash; Lieferung zwischen 19 und 19:30. Speichern ersetzt die bisherige Auswahl.</p>
             </div>
+            <button type="submit" id="pizza-submit-btn" class="btn-kassa" style="width: 60%; margin-bottom: 15px;" disabled>
+                <i class="fas fa-pizza-slice" style="margin-right: 15px;"></i>
+                Pizzabestellung speichern
+            </button>
         </div>
-        <div class="card-footer">
-            <div class="d-flex justify-content-between align-items-center">
-                <strong>Gesamtbetrag: <span id="pizza-total-amount">0,00 €</span></strong>
-                <button type="submit" class="btn btn-primary btn-lg">
-                    <i class="fas fa-pizza-slice"></i>
-                    Pizzabestellung speichern
-                </button>
-            </div>
+        {% if back_url is defined %}
+        <div class="kassa-navigation" style="margin-top: 0;">
+            <a href="{{ back_url }}" class="btn-kassa btn-kassa-secondary">
+                <i class="fas fa-arrow-left"></i>
+                {{ back_label|default('Zurück') }}
+            </a>
         </div>
+        {% endif %}
     </div>
 </form>
 
+<style>
+.product-list {
+    margin-bottom: 30px;
+}
+
+.product-list table {
+    border-collapse: separate;
+    border-spacing: 0;
+    width: 100%;
+}
+
+.product-list th {
+    background-color: #f8f9fa;
+    padding: 12px 15px;
+    font-weight: 600;
+    color: #333;
+    text-align: left;
+}
+
+.product-row {
+    transition: all 0.2s ease;
+    font-size: 1.4rem;
+}
+
+.product-row td {
+  vertical-align: middle;
+  padding: 8px 12px 6px 12px;
+}
+
+.product-row td:first-child {
+    width: 60%;
+}
+.product-row td:nth-child(2) {
+    width: 20%;
+}
+
+.product-row:hover {
+    background-color: #f8f9fa;
+}
+
+.product-row.table-success {
+    background-color: #d4edda !important;
+}
+
+.product-row.table-success:hover {
+    background-color: #c3e6cb !important;
+}
+
+.product-controls {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 15px;
+}
+
+.btn-quantity {
+    min-width: 50px;
+    font-size: 1.5rem;
+    padding: 0.4rem 0.8rem;
+    height: 50px;
+    width: 50px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+}
+
+.quantity {
+    font-size: 2rem;
+    font-weight: 600;
+    color: #333;
+    text-align: center;
+    min-width: 40px;
+}
+
+#cart-summary {
+    position: sticky;
+    bottom: 0;
+    background: white;
+    padding: 20px;
+    border-radius: 15px;
+    box-shadow: 0 -4px 20px rgba(0,0,0,0.1);
+}
+</style>
+
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    function updatePizzaTotal() {
+    const form = document.getElementById('pizza-order-form');
+    const submitBtn = document.getElementById('pizza-submit-btn');
+    const hasInitialSelection = {{ selection|length > 0 ? 'true' : 'false' }};
+
+    function updateCart() {
         let total = 0;
-        document.querySelectorAll('#pizza-order-form .pizza-quantity').forEach(function(input) {
+        let count = 0;
+
+        form.querySelectorAll('.product-row').forEach(row => {
+            const input = row.querySelector('input[type="hidden"]');
             const quantity = parseInt(input.value) || 0;
-            const price = parseInt(input.dataset.price) || 0;
-            total += quantity * price;
+            const price = parseInt(row.dataset.price);
+
+            row.querySelector('.quantity').textContent = quantity;
+            row.classList.toggle('table-success', quantity > 0);
+            row.querySelector('.btn-decrease').disabled = quantity <= 0;
+
+            total += price * quantity;
+            count += quantity;
         });
-        document.getElementById('pizza-total-amount').textContent = (total / 100).toFixed(2).replace('.', ',') + ' €';
+
+        document.getElementById('cart-count').textContent = count;
+
+        if (count > 0) {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '<i class="fas fa-pizza-slice" style="margin-right: 15px;"></i>Pizzabestellung speichern (' + (total / 100).toFixed(2) + ' €)';
+        } else if (hasInitialSelection) {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '<i class="fas fa-times" style="margin-right: 15px;"></i>Pizzabestellung stornieren';
+        } else {
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fas fa-pizza-slice" style="margin-right: 15px;"></i>Pizzabestellung speichern';
+        }
     }
 
-    document.querySelectorAll('#pizza-order-form .pizza-quantity').forEach(function(input) {
-        input.addEventListener('input', updatePizzaTotal);
-        input.addEventListener('change', updatePizzaTotal);
+    form.addEventListener('click', function(e) {
+        const btn = e.target.closest('.btn-quantity');
+        if (!btn) return;
+
+        const row = btn.closest('.product-row');
+        const input = row.querySelector('input[type="hidden"]');
+        let quantity = parseInt(input.value) || 0;
+
+        if (btn.classList.contains('btn-increase')) {
+            quantity += 1;
+        } else if (btn.classList.contains('btn-decrease') && quantity > 0) {
+            quantity -= 1;
+        }
+
+        input.value = quantity;
+        updateCart();
     });
-    document.getElementById('pizza-order-form').addEventListener('submit', function() {
-        this.querySelector('button[type="submit"]').disabled = true;
+
+    form.addEventListener('submit', function() {
+        submitBtn.disabled = true;
     });
-    updatePizzaTotal();
+
+    updateCart();
 });
 </script>
