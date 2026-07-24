@@ -15,6 +15,7 @@ use Symfony\Component\Form\Extension\Core\Type\HiddenType;
 use Symfony\Component\Form\Extension\Core\Type\IntegerType;
 use Symfony\Component\Form\Extension\Core\Type\MoneyType;
 use Symfony\Component\Form\Extension\Core\Type\SubmitType;
+use Symfony\Component\Form\Extension\Core\Type\TextareaType;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\Extension\Core\Type\UrlType;
 use Symfony\Component\Form\Extension\Core\Type\DateTimeType;
@@ -77,6 +78,9 @@ class SettingController extends AbstractController
                 break;
             case SettingType::HTML:
                 $fb->add('text', HtmlTextareaType::class, $options);
+                break;
+            case SettingType::TEXTAREA:
+                $fb->add('text', TextareaType::class, $options);
                 break;
             case SettingType::URL:
                 $fb->add('text', UrlType::class, $options);
