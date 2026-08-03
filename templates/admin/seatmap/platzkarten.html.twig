@@ -68,10 +68,14 @@
             border-right: none;
             border-bottom: none;
         }
+        .sheet > .card:last-child {
+            border-left: none;
+            border-top: none;
+        }
 
         .card__welcome { text-align: center; font-size: 11pt; margin-bottom: 1mm; }
         .card__logo { text-align: center; margin-bottom: 2.5mm; }
-        .card__logo img { height: 15mm; max-width: 85%; object-fit: contain; }
+        .card__logo img { height: 15mm; max-width: 70%; object-fit: contain; }
 
         .card__row { display: flex; align-items: baseline; margin-bottom: 1mm; }
         .card__label { font-size: 12pt; width: 18mm; flex: 0 0 18mm; }
@@ -139,7 +143,7 @@
         <div class="sheet">
             {% for entry in row %}
                 <div class="card">
-                    <div class="card__welcome">Willkommen auf der {{ lanparty_name }}</div>
+                    <div class="card__welcome">Willkommen auf der <strong>{{ lanparty_name }}. KaiserLAN</strong></div>
                     <div class="card__logo">
                         <img src="{{ logo_src }}" alt="KaiserLAN">
                     </div>
@@ -156,7 +160,6 @@
                     {% endif %}
                     {% if sponsors_image is not empty %}
                         <div class="card__sponsors">
-                            <div class="card__sponsors-title">Sponsored by</div>
                             <img src="{{ sponsors_image }}" alt="Sponsoren">
                         </div>
                     {% endif %}

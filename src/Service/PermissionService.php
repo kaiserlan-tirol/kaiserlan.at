@@ -27,6 +27,8 @@ final class PermissionService
     public const ADMIN_CHECKIN = 'ADMIN_CHECKIN';     // May check in Gamers at the LAN
     public const ADMIN_SEATMAP = 'ADMIN_SEATMAP';     // May edit seatmap and assign gamers seats
     public const ADMIN_TOURNEY = 'ADMIN_TOURNEY';     // May edit tourneys
+    public const ADMIN_CATERING = 'ADMIN_CATERING';   // May manage catering (includes pizza orders)
+    public const ADMIN_CATERING_PIZZA = 'ADMIN_CATERING_PIZZA'; // May view pizza orders only
     // extend here
 
     public const PERMISSIONS = [
@@ -39,7 +41,9 @@ final class PermissionService
         self::ADMIN_PAYMENT,
         self::ADMIN_CHECKIN,
         self::ADMIN_SEATMAP,
-        self::ADMIN_TOURNEY
+        self::ADMIN_TOURNEY,
+        self::ADMIN_CATERING,
+        self::ADMIN_CATERING_PIZZA
         // extend here
     ];
 
