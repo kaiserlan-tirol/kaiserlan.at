@@ -8,6 +8,7 @@ parameters:
     router.request_context.host: '%env(SITE_BASE_HOST)%'
     google_recaptcha_site_key: '%env(GOOGLE_RECAPTCHA_SITE_KEY)%'
     payment_webhook_token: '%env(PAYMENT_WEBHOOK_TOKEN)%'
+    env(STEAM_API_KEY): ''
     app.timezone: 'Europe/Vienna'
 
 services:
@@ -20,6 +21,7 @@ services:
             string $publicDir: '%kernel.project_dir%/public'
             string $appSecret: '%env(APP_SECRET)%'
             string $projectDir: '%kernel.project_dir%'
+            string $steamApiKey: '%env(STEAM_API_KEY)%'
 
     #Register PSR-3 LogHandler for Sentry to resolve PSR-3 Placeholders in Reports
     Monolog\Processor\PsrLogMessageProcessor:

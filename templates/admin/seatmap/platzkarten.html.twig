@@ -153,7 +153,7 @@
                     </div>
                     <div class="card__row">
                         <span class="card__label">Platz:</span>
-                        <span class="card__value card__value--platz">{{ entry.seat.sector }}-{{ entry.seat.seatNumber }}</span>
+                        <span class="card__value card__value--platz">{{ entry.seat.generateSeatName }}</span>
                     </div>
                     {% if info_text is not empty %}
                         <div class="card__info">{{ info_text|raw }}</div>

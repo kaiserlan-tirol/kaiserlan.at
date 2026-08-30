@@ -34,6 +34,16 @@ framework:
                 # SSL configuration - can be disabled in dev environments
                 verify_peer: '%env(bool:KLMS_IDM_SSL_VERIFY)%'
                 verify_host: '%env(bool:KLMS_IDM_SSL_VERIFY)%'
+            steam_client:
+                base_uri: 'https://api.steampowered.com'
+                headers:
+                    Accept: 'application/json'
+                # The plesk chroot ships no CA store at all, so peer verification
+                # cannot succeed there. Accepted deliberately: the command runs
+                # rarely and manually. Note the api key travels in the query
+                # string, so a MITM on this connection would expose it.
+                verify_peer: false
+                verify_host: false
 
 when@test:
     framework:

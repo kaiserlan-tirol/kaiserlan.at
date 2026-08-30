@@ -90,6 +90,10 @@ class User
     private ?string $website = null;
 
     #[Assert\Length(max: 250, maxMessage: 'The steam account cannot be longer than {{ limit }} characters')]
+    #[Assert\Regex(
+        pattern: '~^(?:(?:https?://)?(?:www\.)?steamcommunity\.com/(?:id|profiles)/[^/?#\s]+/?|7656\d{13})$~i',
+        message: 'Please enter your steam profile link (e.g. https://steamcommunity.com/profiles/76561198003664671/), not your display name.'
+    )]
     #[Groups(['read', 'write'])]
     private ?string $steamAccount = null;
 

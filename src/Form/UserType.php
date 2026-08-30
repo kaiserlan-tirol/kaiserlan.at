@@ -86,7 +86,7 @@ class UserType extends AbstractType
                 'required' => false,
                 ])
             ->add('steamAccount', TextType::class, [
-                'label' => 'Steam Account',
+                'label' => 'Steam Profil Link',
                 'required' => false,
             ])
             ->add('hardware', TextareaType::class, [

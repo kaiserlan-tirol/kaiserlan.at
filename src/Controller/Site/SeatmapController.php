@@ -117,7 +117,7 @@ class SeatmapController extends AbstractController
             'seat' => $seat,
             'form' => $view,
             'user' => $seat->getOwner() ? $this->seatmapService->getSeatOwner($seat) : null,
-            'clan' => $seat->getClanReservation() ? $this->seatmapService->getSeatReservationClan($seat) : null,
+            'clan' => $seat->getClanReservation() ? $this->seatmapService->getClanReservation($seat) : null,
         ]);
     }
 }
