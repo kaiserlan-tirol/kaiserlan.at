@@ -236,7 +236,7 @@ class SeatmapController extends AbstractController
 
         $users = $this->seatmapService->getSeatedUser($seats);
 
-        // Group resolvable owners by sector, preserving the sector/seatNumber ordering of findTakenSeats().
+        // Group resolvable owners by sector.
         $groups = [];
         foreach ($seats as $seat) {
             $user = $users[$seat->getId()] ?? null;
@@ -245,6 +245,15 @@ class SeatmapController extends AbstractController
             }
             $groups[$seat->getSector()][] = ['seat' => $seat, 'user' => $user];
         }
+
+        // Sort each block by seat name, natural order so "3-2" comes before "3-14".
+        foreach ($groups as &$entries) {
+            usort($entries, static fn (array $a, array $b) => strnatcasecmp(
+                $a['seat']->generateSeatName(),
+                $b['seat']->generateSeatName(),
+            ));
+        }
+        unset($entries);
 
         return $this->render('admin/seatmap/platzkarten.html.twig', [
             'groups' => $groups,

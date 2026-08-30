@@ -57,20 +57,19 @@
 
         /* ---------- Einzelne Platzkarte (A6) ---------- */
         .card {
-            border: 0.2mm solid #b0b0b0;   /* Hairline-Schnittkante */
             padding: 5mm 5mm 4mm;
             display: flex;
             flex-direction: column;
             overflow: hidden;
         }
 
-        .sheet > .card:first-child {
-            border-right: none;
-            border-bottom: none;
+        .sheet > .card:nth-child(1),
+        .sheet > .card:nth-child(3) {
+            border-right: 0.2mm solid #b0b0b0;   /* Hairline-Schnittkante */
         }
-        .sheet > .card:last-child {
-            border-left: none;
-            border-top: none;
+        .sheet > .card:nth-child(1),
+        .sheet > .card:nth-child(2) {
+            border-bottom: 0.2mm solid #b0b0b0;   /* Hairline-Schnittkante */
         }
 
         .card__welcome { text-align: center; font-size: 11pt; margin-bottom: 1mm; }
