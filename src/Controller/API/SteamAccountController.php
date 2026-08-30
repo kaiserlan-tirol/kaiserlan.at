@@ -43,12 +43,15 @@ class SteamAccountController extends AbstractController
         foreach ($this->userService->getUsers(array_values($uuids)) as $user) {
             foreach (SteamAccountService::candidates($user->getSteamAccount()) as ['account' => $account]) {
                 if (SteamAccountService::isSteamId64($account)) {
-                    $steamAccounts[] = $account;
+                    $steamAccounts[$account] ??= [
+                        'gamer' => $user->getNickname(),
+                        'steamProfile' => $account,
+                    ];
                     break;
                 }
             }
         }
 
-        return new JsonResponse(array_values(array_unique($steamAccounts)));
+        return new JsonResponse(array_values($steamAccounts));
     }
 }
