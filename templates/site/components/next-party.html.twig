@@ -2,7 +2,8 @@
 <img class="card-img-top" src="{{ asset("build/images/kaiserlan-generic.png") }}">
 <div class="card-body row justify-content-center h2">
     <div style="text-align: center">
-        <span><span class="text-primary">{{helpers.toShortDate(settings.get("lan.party.start"), 'd.m.')}} {% if settings.get("lan.party.start") %} - {{helpers.toShortDate(settings.get("lan.party.end"), 'd.m.Y')}}{% endif %}</span> <!--<i style="font-size: 1.75rem;" class="fas fa-calendar fa-fw"></i>--></span>
+        <span class="text-primary" style="font-size: 80%">{{settings.get("lan.party.number")}}. KaiserLAN</span>
+        <br><span><span class="text-primary">{{helpers.toShortDate(settings.get("lan.party.start"), 'd.m.')}} {% if settings.get("lan.party.start") %} - {{helpers.toShortDate(settings.get("lan.party.end"), 'd.m.Y')}}{% endif %}</span> <!--<i style="font-size: 1.75rem;" class="fas fa-calendar fa-fw"></i>--></span>
         <br><span class="text-primary" style="font-size: 80%">Start um 15 Uhr</span>
     </div>
 </div>

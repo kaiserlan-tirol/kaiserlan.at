@@ -59,7 +59,7 @@ class SettingService
         'lan.seatmap.allow_booking_for_non_paid' => [self::TB_DESCRIPTION => 'Sitzplanbuchungen für nicht bezahlte Gamer erlauben', self::TB_TYPE => SettingType::Bool],
         'lan.seatmap.locked' => [self::TB_DESCRIPTION => 'Sitzplanbuchungen sperren (Kein Reservieren/Freigeben für User)', self::TB_TYPE => SettingType::Bool],
         'lan.seatmap.bg_image' => [self::TB_DESCRIPTION => 'Sitzplan Hintergrundbild', self::TB_TYPE => SettingType::File],
-        
+
         'lan.seatmap.styles.seat_size' => [self::TB_DESCRIPTION => 'Sitzplatz Höhe/Breite (px)', self::TB_TYPE => SettingType::Integer, self::TB_DEFAULT_VALUE => 27],
         'lan.seatmap.styles.seat_tablewidth_multiplier' => [self::TB_DESCRIPTION => 'Sitzplatz Seitenverhältnis (1 für 1/1 quadratisch, 1.5 oder 2 für breitere Sitzplätze)', self::TB_TYPE => SettingType::String, self::TB_DEFAULT_VALUE => 1],
         'lan.seatmap.styles.seat_border_radius' => [self::TB_DESCRIPTION => 'Border Radios des Sitzes (px)', self::TB_TYPE => SettingType::Integer, self::TB_DEFAULT_VALUE => 8],
@@ -105,7 +105,7 @@ class SettingService
 
         'lan.party.start' => [self::TB_DESCRIPTION => 'Beginn der Lanparty', self::TB_TYPE => SettingType::DateTimeLocal],
         'lan.party.end' => [self::TB_DESCRIPTION => 'Ende der Lanparty', self::TB_TYPE => SettingType::DateTimeLocal],
-        'lan.party.name' => [self::TB_DESCRIPTION => 'Name der Lanparty', self::TB_TYPE => SettingType::String],
+        'lan.party.number' => [self::TB_DESCRIPTION => 'Nummer der Lanparty', self::TB_TYPE => SettingType::Integer],
         'lan.checklist' => [self::TB_DESCRIPTION => 'Checklist Einträge. Zeilen Bindestrich davor werden als Überschrift ausgegeben.', self::TB_TYPE => SettingType::HTML],
 
         'catering.allow_negative_credit' => [self::TB_DESCRIPTION => 'Negatives Catering-Guthaben erlauben', self::TB_TYPE => SettingType::Bool],

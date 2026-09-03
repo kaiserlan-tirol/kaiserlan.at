@@ -135,7 +135,7 @@
 {% set logo_src = asset('build/images/KaiserLAN-Logo/KaiserLAN_horizontal_black_500px.png') %}
 {% set sponsors_image = settings.get('lan.platzkarten.sponsors_image') %}
 {% set info_text = settings.get('lan.platzkarten.text') %}
-{% set lanparty_name = settings.get('lan.party.name') %}
+{% set lanparty_name = settings.get('lan.party.number') %}
 
 {% for entries in groups %}
     {% for row in entries|batch(4) %}

@@ -4,6 +4,16 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>{% block title %}KaiserLAN Kassa{% endblock %}</title>
+
+    {# PWA: als Vollbild-App auf dem Terminal installierbar #}
+    <link rel="manifest" href="{{ path('catering_kassa_manifest') }}">
+    <meta name="theme-color" content="#007be6">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="KaiserLAN Kassa">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <link rel="icon" type="image/png" sizes="192x192" href="/kassa-icon-192.png">
+    <link rel="apple-touch-icon" href="/kassa-icon-192.png">
     
     {% block stylesheets %}
         {{ encore_entry_link_tags('app') }}
@@ -197,6 +207,16 @@
     {% block javascripts %}
         {{ encore_entry_script_tags('app') }}
         {{ encore_entry_script_tags('kassa') }}
+        <script>
+            if ('serviceWorker' in navigator) {
+                window.addEventListener('load', function () {
+                    navigator.serviceWorker.register('{{ path("catering_kassa_sw") }}')
+                        .catch(function (error) {
+                            console.error('Kassa Service Worker konnte nicht registriert werden:', error);
+                        });
+                });
+            }
+        </script>
     {% endblock %}
 </body>
 </html>

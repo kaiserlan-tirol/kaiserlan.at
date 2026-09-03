@@ -1,0 +1,36 @@
+// Service Worker der Kassa-PWA.
+// Zweck: Installierbarkeit (Chrome verlangt dafür einen Fetch-Handler) und ein
+// verständlicher Hinweis statt der Browser-Fehlerseite, wenn das WLAN aussetzt.
+// Es wird bewusst nichts gecacht, die Kassa braucht immer aktuelle Serverdaten.
+
+const OFFLINE_PAGE = '<!DOCTYPE html><html lang="de"><head><meta charset="UTF-8">'
+    + '<meta name="viewport" content="width=device-width, initial-scale=1.0">'
+    + '<title>Kassa offline</title></head>'
+    + '<body style="margin: 0; height: 100vh; display: flex; align-items: center; justify-content: center;'
+    + ' text-align: center; background: #007be6; color: #fff;'
+    + ' font-family: \'Segoe UI\', Tahoma, Geneva, Verdana, sans-serif;">'
+    + '<div><h1>Keine Verbindung</h1>'
+    + '<p>Die Kassa ist gerade nicht erreichbar. Bitte WLAN prüfen und neu laden.</p></div>'
+    + '</body></html>';
+
+self.addEventListener('install', () => {
+    self.skipWaiting();
+});
+
+self.addEventListener('activate', (event) => {
+    event.waitUntil(self.clients.claim());
+});
+
+self.addEventListener('fetch', (event) => {
+    // Nur GET-Navigationen abfangen, damit Bestell-POSTs unberührt ans Netz gehen.
+    if (event.request.mode !== 'navigate' || event.request.method !== 'GET') {
+        return;
+    }
+
+    event.respondWith(
+        fetch(event.request).catch(() => new Response(OFFLINE_PAGE, {
+            status: 503,
+            headers: new Headers({ 'Content-Type': 'text/html; charset=UTF-8' }),
+        }))
+    );
+});

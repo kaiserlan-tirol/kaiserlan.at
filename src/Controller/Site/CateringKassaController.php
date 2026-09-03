@@ -583,4 +583,47 @@ class CateringKassaController extends AbstractController
             return $this->redirectToRoute('catering_kassa_index');
         }
     }
+
+    #[Route('/manifest.webmanifest', name: 'manifest', methods: ['GET'])]
+    public function manifest(): JsonResponse
+    {
+        $response = new JsonResponse([
+            'name' => 'KaiserLAN Kassa',
+            'short_name' => 'Kassa',
+            'description' => 'Kassa Terminal für Catering-Bestellungen',
+            'lang' => 'de',
+            'start_url' => $this->generateUrl('catering_kassa_index'),
+            'scope' => $this->generateUrl('catering_kassa_index'),
+            'display' => 'fullscreen',
+            'background_color' => '#007be6',
+            'theme_color' => '#007be6',
+            'icons' => [
+                [
+                    'src' => '/kassa-icon-192.png',
+                    'sizes' => '192x192',
+                    'type' => 'image/png',
+                    'purpose' => 'any maskable',
+                ],
+                [
+                    'src' => '/kassa-icon-512.png',
+                    'sizes' => '512x512',
+                    'type' => 'image/png',
+                    'purpose' => 'any maskable',
+                ],
+            ],
+        ]);
+        $response->headers->set('Content-Type', 'application/manifest+json');
+
+        return $response;
+    }
+
+    #[Route('/sw.js', name: 'sw', methods: ['GET'])]
+    public function serviceWorker(): Response
+    {
+        $response = $this->render('site/catering/kassa/sw.js.twig');
+        $response->headers->set('Content-Type', 'application/javascript; charset=UTF-8');
+        $response->headers->set('Cache-Control', 'no-cache');
+
+        return $response;
+    }
 }
