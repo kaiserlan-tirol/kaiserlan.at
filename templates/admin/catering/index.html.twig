@@ -32,7 +32,7 @@
                             <th class="text-nowrap w-1">&#8470;</th>
                             <th class="w-25">Besteller</th>
                             <th class="w-25">Datum</th>
-                            <th class="text-nowrap w-1">Artikel</th>
+                            <th>Artikel</th>
                             <th>Betrag</th>
                             <th>Status</th>
                             <th class="text-nowrap w-1" data-orderable="false" data-searchable="false">Aktionen</th>
@@ -42,9 +42,9 @@
                     {% for order in orders %}
                         <tr>
                             <td class="text-center">{{ order.id }}</td>
-                            <td data-order="{{ order.orderer | username }}">{{ order.orderer | username }}</td>
+                            <td data-order="{{ orderers[order.orderer.toString] ?? '' }}">{{ orderers[order.orderer.toString] ?? '' }}</td>
                             <td data-order="{{ order.createdAt | date('U') }}">{{ order.createdAt | date('d.m.y H:i') }}</td>
-                            <td class="text-center">{{ order.totalItems }}</td>
+                            <td data-order="{{ order.totalItems }}">{% for position in order.cateringOrderPositions %}{{ position.quantity }}x{{ position.productCode ?: position.productName }}{% if not loop.last %}, {% endif %}{% endfor %}</td>
                             {% set total = order.calculateTotal %}
                             <td class="text-right" data-order="{{ total }}">{{ (total/100) | format_currency('EUR') }}</td>
                             <td>

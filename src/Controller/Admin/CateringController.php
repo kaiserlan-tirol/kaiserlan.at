@@ -71,8 +71,16 @@ class CateringController extends AbstractController {
     {
         $orders = $this->orderRepository->findAll();
 
+        // resolve all orderers with a single bulk request. Looking them up from the template instead
+        // would cost one request per row for uuids the idm does not know, as misses are not cached.
+        $orderers = [];
+        foreach ($this->userRepo->findById(array_map(fn($o) => $o->getOrderer(), $orders)) as $user) {
+            $orderers[$user->getUuid()->toString()] = $user->getNickname();
+        }
+
         return $this->render('admin/catering/index.html.twig', [
-            'orders' => $orders
+            'orders' => $orders,
+            'orderers' => $orderers
         ]);
     }
 
