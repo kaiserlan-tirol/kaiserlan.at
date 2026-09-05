@@ -1,0 +1,71 @@
+{% extends 'admin/adminBase.html.twig' %}
+
+{% block title %}Catering Statistik - KLMS - Admin{% endblock %}
+{% block siteheading %}<i class="fas fa-chart-bar"></i> Catering Statistik{% endblock %}
+{% block main %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <h1>Catering Statistik</h1>
+            <div class="mb-3">
+                <a href="{{ path('admin_catering') }}" class="btn btn-secondary">
+                    <i class="fas fa-chevron-left"></i>
+                </a>
+            </div>
+            <div class="card">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>Produkt</th>
+                            <th class="text-right">Preis</th>
+                            <th class="text-center">Flat</th>
+                            <th class="text-center">Bezahlt</th>
+                            <th class="text-right">Umsatz</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in stats %}
+                            <tr>
+                                <td>{{ row.product.name }}</td>
+                                <td class="text-right">{{ (row.product.price/100) | format_currency('EUR') }}</td>
+                                <td class="text-center">{{ row.inFlat ? row.flat : '–' }}</td>
+                                <td class="text-center">{{ row.paid }}</td>
+                                <td class="text-right">{{ (row.revenue/100) | format_currency('EUR') }}</td>
+                            </tr>
+                        {% else %}
+                            <tr>
+                                <td colspan="5" class="text-center">Keine Bestellungen vorhanden.</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                    <tfoot>
+                        <tr>
+                            <th colspan="4" class="text-right">Umsatz</th>
+                            <th class="text-right">{{ (revenue/100) | format_currency('EUR') }}</th>
+                        </tr>
+                        <tr>
+                            <th colspan="4" class="text-right">
+                                Foodflat Einnahmen
+                                {% if foodflat.addon %}
+                                    <small class="text-muted">({{ foodflat.count }} &times; {{ (foodflat.addon.price/100) | format_currency('EUR') }})</small>
+                                {% endif %}
+                            </th>
+                            <th class="text-right">
+                                {% if foodflat.addon %}
+                                    {{ (foodflat.revenue/100) | format_currency('EUR') }}
+                                {% else %}
+                                    <span class="badge badge-warning">Addon &quot;Foodflat&quot; nicht gefunden</span>
+                                {% endif %}
+                            </th>
+                        </tr>
+                        <tr class="table-active">
+                            <th colspan="4" class="text-right">Gesamt</th>
+                            <th class="text-right">{{ (total/100) | format_currency('EUR') }}</th>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

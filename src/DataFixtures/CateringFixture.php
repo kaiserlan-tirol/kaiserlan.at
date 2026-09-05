@@ -28,9 +28,9 @@ class CateringFixture extends Fixture implements DependentFixtureInterface
     {
         // Get addons from ShopFixture references
         /** @var ShopAddon $cateringAddon1 */
-        $cateringAddon1 = $this->getReference('addon-0'); // Catering Guthaben 50€
+        $cateringAddon1 = $this->getReference('addon-0', ShopAddon::class); // Catering Guthaben 50€
         /** @var ShopAddon $cateringAddon2 */
-        $cateringAddon2 = $this->getReference('addon-1'); // Catering Guthaben 100€
+        $cateringAddon2 = $this->getReference('addon-1', ShopAddon::class); // Catering Guthaben 100€
 
         // Create sample products
         $product1 = (new CateringProduct())

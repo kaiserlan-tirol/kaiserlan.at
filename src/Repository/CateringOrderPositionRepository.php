@@ -79,6 +79,44 @@ class CateringOrderPositionRepository extends ServiceEntityRepository
     }
 
     /**
+     * Aggregates the ordered positions per product, splitting the quantity into items covered by a
+     * flatrate (price 0) and items that were paid for.
+     *
+     * @param CateringOrderStatus[] $statusFilter
+     * @return array [product_id => ['flat' => quantity, 'paid' => quantity, 'revenue' => sum in cents]]
+     */
+    public function getProductStatistics(array $statusFilter = []): array
+    {
+        $qb = $this->getEntityManager()->createQueryBuilder();
+        $q = $qb->select(
+                'identity(op.product) as pid',
+                'SUM(CASE WHEN op.price = 0 THEN op.quantity ELSE 0 END) as flat',
+                'SUM(CASE WHEN op.price > 0 THEN op.quantity ELSE 0 END) as paid',
+                'SUM(CASE WHEN op.price > 0 THEN op.price * op.quantity ELSE 0 END) as revenue'
+            )
+            ->from(CateringOrderPosition::class, 'op')
+            ->join('op.order', 'o')
+            ->andWhere('op.product IS NOT NULL')
+            ->groupBy('op.product');
+
+        if (!empty($statusFilter)) {
+            $q
+                ->andWhere('o.status in (:status)')
+                ->setParameter('status', $statusFilter);
+        }
+
+        $result = [];
+        foreach ($q->getQuery()->getArrayResult() as $row) {
+            $result[$row['pid']] = [
+                'flat' => (int) $row['flat'],
+                'paid' => (int) $row['paid'],
+                'revenue' => (int) $row['revenue'],
+            ];
+        }
+        return $result;
+    }
+
+    /**
      * @param CateringOrderStatus[] $statusFilter
      * @return CateringOrderPosition[]
      */

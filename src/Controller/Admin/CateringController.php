@@ -131,6 +131,21 @@ class CateringController extends AbstractController {
         ]);
     }
 
+    #[Route(path: '/stats', name: '_stats', methods: ['GET'])]
+    public function stats(): Response
+    {
+        $stats = $this->cateringService->getProductStatistics();
+        $foodflat = $this->cateringService->getFoodflatRevenue();
+        $revenue = array_sum(array_column($stats, 'revenue'));
+
+        return $this->render('admin/catering/stats.html.twig', [
+            'stats' => $stats,
+            'foodflat' => $foodflat,
+            'revenue' => $revenue,
+            'total' => $revenue + $foodflat['revenue'],
+        ]);
+    }
+
     #[Route(path: '/product', name: '_product', methods: ['GET'])]
     public function indexProducts(): Response
     {
