@@ -36,13 +36,14 @@ class SeatRepository extends ServiceEntityRepository
     }
 
     /**
-     * @return string[] Distinct sectors (blocks) that have at least one taken seat, sorted ascending
+     * @return string[] Distinct sectors (blocks) that contain seats, sorted ascending
      */
     public function findDistinctSectors(): array
     {
         $rows = $this->createQueryBuilder('s')
             ->select('s.sector')
-            ->andWhere('s.owner IS NOT NULL')
+            ->andWhere('s.type = :seat')
+            ->setParameter('seat', SeatKind::SEAT)
             ->groupBy('s.sector')
             ->orderBy('s.sector', 'ASC')
             ->getQuery()

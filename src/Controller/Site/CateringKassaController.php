@@ -462,21 +462,7 @@ class CateringKassaController extends AbstractController
                 }
             }
             
-            // Format 3: Try to find by 4-character catering QR code
-            if (!$user && strlen(trim($qrCode)) === 4) {
-                // Normalize QR code to uppercase
-                $normalizedQrCode = strtoupper(trim($qrCode));
-                
-                // Search for ticket by catering QR code
-                $ticket = $this->ticketRepository->findOneBy(['cateringQrCode' => $normalizedQrCode]);
-                
-                if ($ticket && $ticket->getRedeemer()) {
-                    $userRepo = $this->idmManager->getRepository(User::class);
-                    $user = $userRepo->findOneById($ticket->getRedeemer());
-                }
-            }
-            
-            // Format 4: Try to find by catering QR code (more general approach)
+            // Format 3: Try to find by catering QR code
             if (!$user) {
                 $normalizedQrCode = strtoupper(trim($qrCode));
                 
@@ -488,7 +474,7 @@ class CateringKassaController extends AbstractController
                 }
             }
             
-            // Format 5: Try to find by nickname if it's a simple string
+            // Format 4: Try to find by nickname if it's a simple string
             if (!$user && ctype_alnum($qrCode)) {
                 $userRepo = $this->idmManager->getRepository(User::class);
                 $users = $userRepo->findFuzzy($qrCode);

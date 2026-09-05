@@ -8,6 +8,8 @@ use Ramsey\Uuid\UuidInterface;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Validator\Constraints as Assert;
 
+#[ORM\Table]
+#[ORM\Index(name: 'catering_qr_code_idx', columns: ['catering_qr_code'])]
 #[ORM\Entity(repositoryClass: TicketRepository::class)]
 class Ticket
 {

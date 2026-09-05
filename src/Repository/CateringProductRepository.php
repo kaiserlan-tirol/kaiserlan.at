@@ -23,7 +23,14 @@ class CateringProductRepository extends ServiceEntityRepository
 
     public function findActive(): array
     {
-        return $this->findBy(['active' => true], ['sortIndex' => 'ASC']);
+        return $this->createQueryBuilder('p')
+            ->leftJoin('p.includedInAddons', 'a')
+            ->addSelect('a')
+            ->where('p.active = :active')
+            ->setParameter('active', true)
+            ->orderBy('p.sortIndex', 'ASC')
+            ->getQuery()
+            ->getResult();
     }
 
     public function findByProductCode(string $productCode): ?CateringProduct

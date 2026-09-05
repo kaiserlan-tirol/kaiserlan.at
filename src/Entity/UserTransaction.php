@@ -7,6 +7,8 @@ use Doctrine\ORM\Mapping as ORM;
 use DateTimeImmutable;
 use Ramsey\Uuid\UuidInterface;
 
+#[ORM\Table]
+#[ORM\Index(name: 'user_transaction_user_idx', columns: ['user'])]
 #[ORM\Entity(repositoryClass: UserTransactionRepository::class)]
 class UserTransaction
 {

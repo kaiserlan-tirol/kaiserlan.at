@@ -8,6 +8,8 @@ use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 use Ramsey\Uuid\UuidInterface;
 
+#[ORM\Table]
+#[ORM\Index(name: 'catering_order_orderer_idx', columns: ['orderer'])]
 #[ORM\Entity(repositoryClass: CateringOrderRepository::class)]
 class CateringOrder implements OrderInterface
 {

@@ -65,8 +65,8 @@
                                 </td>
                                 <td>
                                     {% if not ticket.isPunched() %}
-                                        <a class="btn btn-sm btn-outline-dark text-nowrap" target="_blank" href="{{ path('admin_checkin_show', {'id' : ticket.id}) }}">
-                                            <i class="fas fa-ticket"></i> CheckIn <i class="fas fa-external-link"></i>
+                                        <a class="btn btn-sm btn-outline-dark text-nowrap" href="{{ path('admin_checkin_show', {'id' : ticket.id}) }}">
+                                            <i class="fas fa-ticket"></i> CheckIn
                                         </a>
                                     {% endif %}
                                 </td>

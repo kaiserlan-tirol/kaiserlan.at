@@ -127,7 +127,7 @@
     </div>
     {% if total == 0 %}
         <div class="empty-hint">
-            Keine belegten Sitze{% if sector %} im Block „{{ sector }}"{% endif %} gefunden – es gibt nichts zu drucken.
+            Keine Sitze{% if sector %} im Block „{{ sector }}"{% endif %} gefunden – es gibt nichts zu drucken.
         </div>
     {% endif %}
 </div>
@@ -148,7 +148,7 @@
                     </div>
                     <div class="card__row">
                         <span class="card__label">Gamer:</span>
-                        <span class="card__value">{{ entry.user.nickname }}</span>
+                        <span class="card__value">{% if entry.user %}{{ entry.user.nickname }}{% else %}&nbsp;{% endif %}</span>
                     </div>
                     <div class="card__row">
                         <span class="card__label">Platz:</span>

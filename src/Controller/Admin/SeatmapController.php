@@ -3,6 +3,7 @@
 namespace App\Controller\Admin;
 
 use App\Entity\Seat;
+use App\Entity\SeatKind;
 use App\Entity\SeatOrientation;
 use App\Form\ClanSelectType;
 use App\Form\SeatType;
@@ -229,21 +230,22 @@ class SeatmapController extends AbstractController
         $sector = $request->query->get('sector');
         $sector = (is_string($sector) && $sector !== '') ? $sector : null;
 
-        $seats = $this->seatRepository->findTakenSeats();
+        // Every real seat gets a card, taken or not. Locked seats and info markers are no seats to sit on.
+        $criteria = ['type' => SeatKind::SEAT];
         if ($sector !== null) {
-            $seats = array_filter($seats, static fn (Seat $seat) => $seat->getSector() === $sector);
+            $criteria['sector'] = $sector;
         }
+        $seats = $this->seatRepository->findBy($criteria, ['sector' => 'ASC', 'seatNumber' => 'ASC']);
 
         $users = $this->seatmapService->getSeatedUser($seats);
 
-        // Group resolvable owners by sector.
+        // Group by sector. A null user means a free seat, its card stays nameless.
         $groups = [];
         foreach ($seats as $seat) {
-            $user = $users[$seat->getId()] ?? null;
-            if ($user === null) {
-                continue; // skip seats whose owner cannot be resolved (e.g. deleted IDM user)
-            }
-            $groups[$seat->getSector()][] = ['seat' => $seat, 'user' => $user];
+            $groups[$seat->getSector()][] = [
+                'seat' => $seat,
+                'user' => $users[$seat->getId()] ?? null,
+            ];
         }
 
         // Sort each block by seat name, natural order so "3-2" comes before "3-14".
