@@ -31,7 +31,7 @@
                             <td>{{ name }}</td>
                             <td>
                                 {%- for uuid, qty in item.orderers -%}
-                                    {{ uuid | username }}{% if qty > 1 %} (×{{ qty }}){% endif %}{% if not loop.last %}, {% endif %}
+                                    {{ orderers[uuid] ?? '' }}{% if qty > 1 %} (×{{ qty }}){% endif %}{% if not loop.last %}, {% endif %}
                                 {%- endfor -%}
                             </td>
                             <td class="text-right">{{ (item.unitPrice/100) | format_currency('EUR') }}</td>
