@@ -6,18 +6,22 @@ use App\Entity\IncomingPayment;
 use App\Entity\User;
 use App\Idm\IdmManager;
 use App\Idm\IdmRepository;
+use App\Repository\TicketRepository;
 use Psr\Log\LoggerInterface;
 
 class PaymentMatchingService
 {
     private readonly IdmRepository $userRepo;
     private readonly LoggerInterface $logger;
+    private readonly TicketRepository $ticketRepository;
 
     public function __construct(
         IdmManager $idmManager,
+        TicketRepository $ticketRepository,
         LoggerInterface $logger
     ) {
         $this->userRepo = $idmManager->getRepository(User::class);
+        $this->ticketRepository = $ticketRepository;
         $this->logger = $logger;
     }
 
@@ -37,7 +41,7 @@ class PaymentMatchingService
         // Sort by confidence score (highest first)
         usort($matches, fn($a, $b) => $b['score'] <=> $a['score']);
         
-        $bestMatch = $matches[0];
+        $bestMatch = $this->preferTicketHolder($matches);
         
         // Only auto-match if confidence is high enough
         if ($bestMatch['score'] >= 0.9) {
@@ -69,6 +73,28 @@ class PaymentMatchingService
         }
 
         return false;
+    }
+
+    /**
+     * Several accounts can reach the same score - typically an old and a current
+     * account of the same person. Prefer the one that actually holds a ticket.
+     */
+    private function preferTicketHolder(array $sortedMatches): array
+    {
+        $topScore = $sortedMatches[0]['score'];
+        $tied = array_filter($sortedMatches, fn($m) => abs($m['score'] - $topScore) < 0.0001);
+
+        if (count($tied) < 2) {
+            return $sortedMatches[0];
+        }
+
+        foreach ($tied as $match) {
+            if ($this->ticketRepository->findOneByRedeemer($match['user']->getUuid())) {
+                return $match;
+            }
+        }
+
+        return $sortedMatches[0];
     }
 
     public function findPotentialMatches(IncomingPayment $payment): array
@@ -245,7 +271,7 @@ class PaymentMatchingService
             }
         }
 
-        return $score > 0 ? ['total' => min($score, 1.0), 'reasons' => $reasons] : ['total' => 0, 'reasons' => []];
+        return $score > 0 ? ['total' => $score, 'reasons' => $reasons] : ['total' => 0, 'reasons' => []];
     }
 
     public function learnFromMatch(IncomingPayment $payment, User $user): void

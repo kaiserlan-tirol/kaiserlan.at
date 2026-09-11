@@ -4,7 +4,6 @@ namespace App\Command;
 
 use App\Entity\IncomingPayment;
 use App\Service\IncomingPaymentService;
-use App\Service\PaymentProcessingService;
 use App\Service\PaymentMatchingService;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
@@ -22,7 +21,6 @@ class ProcessPaymentsCommand extends Command
     public function __construct(
         private readonly IncomingPaymentService $incomingPaymentService,
         private readonly PaymentMatchingService $paymentMatchingService,
-        private readonly PaymentProcessingService $paymentProcessingService,
     ) {
         parent::__construct();
     }
@@ -78,6 +76,7 @@ Examples:
 
         $matchedCount = 0;
         $processedCount = 0;
+        $skippedNoTicket = 0;
         $errors = 0;
 
         try {
@@ -171,7 +170,19 @@ Examples:
                                 ));
                             } else {
                                 // Actually process the payment
-                                $result = $this->paymentProcessingService->processPayment($payment);
+                                $result = $this->incomingPaymentService->processPayment($payment);
+
+                                if (!empty($result['skipped_without_ticket'])) {
+                                    $skippedNoTicket++;
+                                    $io->text(sprintf(
+                                        'Skipped payment %.2f EUR from %s: matched user has no ticket',
+                                        $payment->getAmount(),
+                                        $payment->getPayerName() ?? 'unknown'
+                                    ));
+                                    $progressBar->advance();
+                                    continue;
+                                }
+
                                 $processedCount++;
                                 
                                 if ($debug) {
@@ -213,6 +224,7 @@ Examples:
         $io->table(['Metric', 'Count'], [
             ['Payments Matched', $matchedCount],
             ['Payments Processed', $processedCount],
+            ['Skipped (no ticket)', $skippedNoTicket],
             ['Errors', $errors],
         ]);
 

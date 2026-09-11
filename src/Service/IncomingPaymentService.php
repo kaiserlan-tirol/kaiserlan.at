@@ -113,7 +113,14 @@ class IncomingPaymentService
 
         // Use the dedicated payment processing service
         $result = $this->paymentProcessingService->processPayment($payment);
-        
+
+        // Nothing was booked - keep it matched so it can be reassigned and retried
+        if (!empty($result['skipped_without_ticket'])) {
+            $this->paymentRepository->save($payment);
+
+            return $result;
+        }
+
         // Update payment status
         $payment->setStatus(IncomingPayment::STATUS_PROCESSED);
         $payment->setProcessedBy($processedBy);

@@ -8,6 +8,7 @@ use App\Entity\User;
 use App\Idm\IdmManager;
 use App\Idm\IdmRepository;
 use App\Repository\ShopOrderRepository;
+use App\Repository\TicketRepository;
 use Psr\Log\LoggerInterface;
 
 class PaymentProcessingService
@@ -18,6 +19,7 @@ class PaymentProcessingService
     private readonly ShopOrderRepository $shopOrderRepository;
     private readonly LoggerInterface $logger;
     private readonly TransactionService $transactionService;
+    private readonly TicketRepository $ticketRepository;
 
     public function __construct(
         CateringService $cateringService,
@@ -25,6 +27,7 @@ class PaymentProcessingService
         IdmManager $idmManager,
         ShopOrderRepository $shopOrderRepository,
         TransactionService $transactionService,
+        TicketRepository $ticketRepository,
         LoggerInterface $logger
     ) {
         $this->cateringService = $cateringService;
@@ -32,6 +35,7 @@ class PaymentProcessingService
         $this->userRepo = $idmManager->getRepository(User::class);
         $this->shopOrderRepository = $shopOrderRepository;
         $this->transactionService = $transactionService;
+        $this->ticketRepository = $ticketRepository;
         $this->logger = $logger;
     }
 
@@ -44,6 +48,30 @@ class PaymentProcessingService
         $user = $this->userRepo->findOneById($payment->getMatchedUser());
         if (!$user) {
             throw new \InvalidArgumentException('Matched user not found');
+        }
+
+        // Without a ticket the payment does not belong to this LAN - leave it
+        // matched so an admin can reassign it, and book nothing.
+        if (!$this->ticketRepository->findOneByRedeemer($user->getUuid())) {
+            $note = 'Nicht verarbeitet - der zugeordnete Benutzer hat kein Ticket';
+            $payment->setProcessingNotes($note);
+
+            $this->logger->warning('Payment skipped, matched user has no ticket', [
+                'payment_id' => $payment->getId(),
+                'user_id' => $user->getUuid()->toString(),
+                'amount' => $payment->getAmountInCents(),
+            ]);
+
+            return [
+                'shop_orders_processed' => 0,
+                'shop_amount_used' => 0,
+                'catering_orders_processed' => 0,
+                'catering_amount_used' => 0,
+                'credit_added' => 0,
+                'total_amount' => $payment->getAmountInCents(),
+                'processing_notes' => [$note],
+                'skipped_without_ticket' => true
+            ];
         }
 
         // Check if this payment might be a duplicate of a recently paid order

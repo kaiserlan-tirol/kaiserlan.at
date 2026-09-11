@@ -6,6 +6,7 @@ use App\Entity\IncomingPayment;
 use App\Entity\User;
 use App\Idm\IdmRepository;
 use App\Repository\ShopOrderRepository;
+use App\Repository\TicketRepository;
 use App\Service\CateringService;
 use App\Service\PaymentProcessingService;
 use App\Service\ShopService;
@@ -113,7 +114,8 @@ class PaymentProcessingServiceTest extends TestCase
         CateringService $cateringService,
         ShopService $shopService,
         IdmRepository $userRepo,
-        TransactionService $transactionService
+        TransactionService $transactionService,
+        ?TicketRepository $ticketRepository = null
     ): PaymentProcessingService {
         $reflection = new \ReflectionClass(PaymentProcessingService::class);
         $service = $reflection->newInstanceWithoutConstructor();
@@ -124,6 +126,7 @@ class PaymentProcessingServiceTest extends TestCase
             'userRepo' => $userRepo,
             'shopOrderRepository' => $this->createMock(ShopOrderRepository::class),
             'transactionService' => $transactionService,
+            'ticketRepository' => $ticketRepository ?? $this->ticketRepositoryWithTicket(),
             'logger' => new NullLogger(),
         ] as $name => $value) {
             $property = $reflection->getProperty($name);
@@ -132,5 +135,53 @@ class PaymentProcessingServiceTest extends TestCase
         }
 
         return $service;
+    }
+
+    private function ticketRepositoryWithTicket(): TicketRepository
+    {
+        $repo = $this->createMock(TicketRepository::class);
+        $repo->method('findOneByRedeemer')->willReturn(new \App\Entity\Ticket());
+
+        return $repo;
+    }
+
+    /**
+     * A payment matched to a user without a ticket must not book anything.
+     */
+    public function testPaymentIsNotProcessedWithoutTicket(): void
+    {
+        $user = new User();
+        $user->setUuid(Uuid::uuid4());
+
+        $payment = $this->createMock(IncomingPayment::class);
+        $payment->method('getId')->willReturn(33);
+        $payment->method('getMatchedUser')->willReturn($user->getUuid());
+        $payment->method('getAmountInCents')->willReturn(3000);
+
+        $userRepo = $this->createMock(IdmRepository::class);
+        $userRepo->method('findOneById')->willReturn($user);
+
+        $ticketRepository = $this->createMock(TicketRepository::class);
+        $ticketRepository->method('findOneByRedeemer')->willReturn(null);
+
+        $cateringService = $this->createMock(CateringService::class);
+        $cateringService->expects($this->never())->method('processPayment');
+        $cateringService->expects($this->never())->method('addUserCredit');
+
+        $shopService = $this->createMock(ShopService::class);
+        $shopService->expects($this->never())->method('setOrderPaid');
+
+        $service = $this->buildService(
+            $cateringService,
+            $shopService,
+            $userRepo,
+            $this->createMock(TransactionService::class),
+            $ticketRepository
+        );
+
+        $result = $service->processPayment($payment);
+
+        $this->assertTrue($result['skipped_without_ticket']);
+        $this->assertSame(0, $result['credit_added']);
     }
 }
