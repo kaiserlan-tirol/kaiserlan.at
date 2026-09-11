@@ -188,8 +188,8 @@ class IncomingPaymentRepository extends ServiceEntityRepository
         
         return $this->createQueryBuilder('p')
             ->where('p.matchedUser IS NOT NULL')
-            ->andWhere('p.status != :processed')
-            ->setParameter('processed', IncomingPayment::STATUS_PROCESSED)
+            ->andWhere('p.status = :matched')
+            ->setParameter('matched', IncomingPayment::STATUS_MATCHED)
             ->orderBy('p.createdAt', 'DESC')
             ->setFirstResult($offset)
             ->setMaxResults($limit)

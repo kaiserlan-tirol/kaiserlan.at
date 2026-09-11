@@ -104,11 +104,11 @@
                     <a class="nav-link {% if app.request.get('_route') starts with 'admin_checkin' %}active{% endif %}" href="{{ path('admin_checkin') }}"><i class="fas fa-shipping-fast fa-fw"></i> Express CheckIn </a>
                 </li>
                 {% endif %}
-                {#
+                {% if is_granted('ROLE_ADMIN_PAYMENT') %}
                 <li class="nav-item">
                     <a class="nav-link {% if app.request.get('_route') starts with 'admin_incoming_payment' %}active{% endif %}" href="{{ path('admin_incoming_payment') }}"><i class="fas fa-money-check-alt fa-fw"></i> Zahlungen </a>
                 </li>
-                #}
+                {% endif %}
                 {% if is_granted('ROLE_ADMIN_SEATMAP') %}
                     <li class="nav-item">
                         <a class="nav-link {% if app.request.get('_route') starts with 'admin_seatmap' %}active{% endif %}" href="{{ path('admin_seatmap') }}"><i class="fas fa-chair fa-fw"></i> Seatmap </a>

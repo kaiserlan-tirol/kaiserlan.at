@@ -278,7 +278,6 @@ class IncomingPaymentController extends AbstractController
     public function assignUser(IncomingPayment $payment, Request $request): Response
     {
         $userId = $request->request->get('user');
-        $confidence = (float) $request->request->get('confidence', 0.5);
 
         if (!$userId) {
             $this->addFlash('error', 'Kein Benutzer ausgewählt.');
@@ -292,11 +291,10 @@ class IncomingPaymentController extends AbstractController
                 return $this->redirectToRoute('admin_incoming_payment_show', ['id' => $payment->getId()]);
             }
 
-            $this->paymentMatchingService->matchPaymentToUser(
+            $this->incomingPaymentService->matchPaymentToUser(
                 $payment,
-                $user,
-                $confidence,
-                true // isManual
+                $user->getUuid(),
+                IncomingPayment::CONFIDENCE_MANUAL
             );
 
             $this->addFlash('success', 'Zahlung erfolgreich zugeordnet.');
