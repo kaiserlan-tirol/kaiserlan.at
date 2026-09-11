@@ -1,9 +1,9 @@
 #!/bin/bash
 set +e
 
-LANFOLDER="lan03"
+LANFOLDER="lan05"
 BASE_DIR=`dirname $0`
 
 
-echo "Rsynced data, clearing cache"
+echo "Processing payments on $LANFOLDER.kaiserlan.at"
 ssh -p 822 headshot_ftp@neu.headshot.at "/$LANFOLDER.kaiserlan.at/auto-process-payments.sh"

@@ -79,18 +79,20 @@ class PaymentProcessingService
 
         // Then, try to pay for open catering orders
         $cateringOrdersProcessed = $this->processCateringOrders($user, $amountInCents, $processingNotes);
-        $amountInCents -= $cateringOrdersProcessed['amount_used'];
+        // The catering service already books any leftover as credit itself, so both
+        // the used and the credited part are gone from the available amount.
+        $amountInCents -= $cateringOrdersProcessed['amount_used'] + $cateringOrdersProcessed['amount_credited'];
 
         // Add any remaining amount as catering credit
-        $creditAdded = 0;
+        $creditAdded = $cateringOrdersProcessed['amount_credited'];
         if ($amountInCents > 0) {
             $this->cateringService->addUserCredit(
                 $user,
                 $amountInCents,
                 sprintf('Incoming payment #%d - remaining amount', $payment->getId())
             );
-            $creditAdded = $amountInCents;
-            $processingNotes[] = sprintf('Added %.2f € as catering credit', $creditAdded / 100);
+            $creditAdded += $amountInCents;
+            $processingNotes[] = sprintf('Added %.2f € as catering credit', $amountInCents / 100);
         }
 
         // Update payment processing notes
@@ -115,7 +117,7 @@ class PaymentProcessingService
         return $result;
     }
 
-    private function processShopOrders(User $user, int &$availableAmount, array &$processingNotes): array
+    private function processShopOrders(User $user, int $availableAmount, array &$processingNotes): array
     {
         if ($availableAmount <= 0) {
             return ['orders_processed' => 0, 'amount_used' => 0];
@@ -160,10 +162,10 @@ class PaymentProcessingService
         return ['orders_processed' => $ordersProcessed, 'amount_used' => $amountUsed];
     }
 
-    private function processCateringOrders(User $user, int &$availableAmount, array &$processingNotes): array
+    private function processCateringOrders(User $user, int $availableAmount, array &$processingNotes): array
     {
         if ($availableAmount <= 0) {
-            return ['orders_processed' => 0, 'amount_used' => 0];
+            return ['orders_processed' => 0, 'amount_used' => 0, 'amount_credited' => 0];
         }
 
         // Use the existing catering service payment processing
@@ -187,7 +189,8 @@ class PaymentProcessingService
 
         return [
             'orders_processed' => $result['orders_processed'],
-            'amount_used' => $result['amount_used']
+            'amount_used' => $result['amount_used'],
+            'amount_credited' => $result['amount_credited']
         ];
     }
 

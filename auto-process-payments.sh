@@ -62,7 +62,7 @@ log "Processing payments since: $SINCE_DATE"
 
 # Step 1: Fetch PayPal emails from last 2 days
 log "--- Step 1: Fetching PayPal emails ---"
-FETCH_CMD="/.phpenv/versions/8.3/bin/php bin/console app:fetch-payment-emails $SINCE_DATE --source=paypal --limit=50 --env=prod"
+FETCH_CMD="/.phpenv/versions/8.3/bin/php bin/console app:fetch-payment-emails --since=$SINCE_DATE --source=paypal --limit=50 --env=prod"
 if ! run_command "$FETCH_CMD" "Fetch PayPal emails"; then
     log "❌ Email fetching failed, aborting"
     exit 1
