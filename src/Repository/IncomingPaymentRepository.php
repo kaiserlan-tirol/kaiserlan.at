@@ -164,6 +164,24 @@ class IncomingPaymentRepository extends ServiceEntityRepository
     /**
      * Find unmatched payments with pagination
      */
+    /**
+     * Payments that stayed behind and need someone to look at them: no match
+     * found, matched with medium confidence, or matched but not bookable (for
+     * instance because the user holds no ticket). Ignored ones are left out -
+     * that is how an admin silences a case for good.
+     *
+     * @return IncomingPayment[]
+     */
+    public function findNeedingAttention(): array
+    {
+        return $this->createQueryBuilder('p')
+            ->where('p.status IN (:open)')
+            ->setParameter('open', [IncomingPayment::STATUS_PENDING, IncomingPayment::STATUS_MATCHED])
+            ->orderBy('p.createdAt', 'ASC')
+            ->getQuery()
+            ->getResult();
+    }
+
     public function findUnmatchedPaginated(int $page = 1, int $limit = 50): array
     {
         $offset = ($page - 1) * $limit;

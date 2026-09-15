@@ -5,6 +5,7 @@ namespace App\Command;
 use App\Entity\IncomingPayment;
 use App\Service\IncomingPaymentService;
 use App\Service\PaymentMatchingService;
+use App\Service\PaymentNotificationService;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
@@ -21,6 +22,7 @@ class ProcessPaymentsCommand extends Command
     public function __construct(
         private readonly IncomingPaymentService $incomingPaymentService,
         private readonly PaymentMatchingService $paymentMatchingService,
+        private readonly PaymentNotificationService $paymentNotificationService,
     ) {
         parent::__construct();
     }
@@ -232,7 +234,48 @@ Examples:
             $io->note('Payments have been processed. Check the payment dashboard for details.');
         }
 
+        $this->reportOpenCases($io, $dryRun);
+
         return Command::SUCCESS;
+    }
+
+    /**
+     * Mail one digest over everything that stayed behind. This runs last on
+     * purpose: it is the final step of auto-process-payments.sh, so the digest
+     * covers the whole pipeline, including what the import already booked.
+     */
+    private function reportOpenCases(SymfonyStyle $io, bool $dryRun): void
+    {
+        $openCases = $this->paymentNotificationService->getOpenCases();
+
+        if (empty($openCases)) {
+            return;
+        }
+
+        $io->warning(sprintf('%d payment(s) need attention', count($openCases)));
+
+        $recipient = $this->paymentNotificationService->getRecipient();
+        if ($recipient === null) {
+            $io->note(sprintf(
+                'No notification address configured (setting "%s") - no mail sent.',
+                PaymentNotificationService::SETTING_RECIPIENT
+            ));
+
+            return;
+        }
+
+        if ($dryRun) {
+            $io->note(sprintf('Would send a notification to %s:', $recipient));
+            $io->text($this->paymentNotificationService->buildBody($openCases));
+
+            return;
+        }
+
+        if ($this->paymentNotificationService->notifyOpenCases() > 0) {
+            $io->success(sprintf('Notification sent to %s', $recipient));
+        } else {
+            $io->error('Could not send the notification, see the log for details.');
+        }
     }
 
     /**

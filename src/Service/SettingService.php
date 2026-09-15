@@ -51,6 +51,7 @@ class SettingService
         'lan.signup.discount.price' => [self::TB_DESCRIPTION => 'Preis für einen Eintritt mit Gruppenermäßigung.', self::TB_TYPE => SettingType::Money],
         'lan.signup.discount.limit' => [self::TB_DESCRIPTION => 'Gruppenermäßigung ab x Eintritte.', self::TB_TYPE => SettingType::Integer],
         'lan.signup.payment_details' => [self::TB_DESCRIPTION => 'Bankdaten für die Zahlung von Bestellungen', self::TB_TYPE => SettingType::HTML],
+        'payment.notification.email' => [self::TB_DESCRIPTION => 'E-Mail-Adresse für Hinweise auf nicht verarbeitbare Zahlungen (leer = keine Benachrichtigung)', self::TB_TYPE => SettingType::String],
 
         'shop.per_ticket_addons' => [self::TB_DESCRIPTION => 'Add-ons pro Ticket zuordnen (neues System)', self::TB_TYPE => SettingType::Bool],
 

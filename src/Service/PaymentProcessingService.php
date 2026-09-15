@@ -18,7 +18,6 @@ class PaymentProcessingService
     private readonly IdmRepository $userRepo;
     private readonly ShopOrderRepository $shopOrderRepository;
     private readonly LoggerInterface $logger;
-    private readonly TransactionService $transactionService;
     private readonly TicketRepository $ticketRepository;
 
     public function __construct(
@@ -26,7 +25,6 @@ class PaymentProcessingService
         ShopService $shopService,
         IdmManager $idmManager,
         ShopOrderRepository $shopOrderRepository,
-        TransactionService $transactionService,
         TicketRepository $ticketRepository,
         LoggerInterface $logger
     ) {
@@ -34,7 +32,6 @@ class PaymentProcessingService
         $this->shopService = $shopService;
         $this->userRepo = $idmManager->getRepository(User::class);
         $this->shopOrderRepository = $shopOrderRepository;
-        $this->transactionService = $transactionService;
         $this->ticketRepository = $ticketRepository;
         $this->logger = $logger;
     }
@@ -74,29 +71,10 @@ class PaymentProcessingService
             ];
         }
 
-        // Check if this payment might be a duplicate of a recently paid order
-        if ($this->transactionService->isDuplicatePayment($user->getUuid(), $payment->getAmountInCents())) {
-            $payment->setStatus(IncomingPayment::STATUS_PROCESSED);
-            $payment->setProcessingNotes('Payment skipped - duplicate of recently paid order (already_assigned)');
-            
-            $this->logger->info('Payment skipped as duplicate', [
-                'payment_id' => $payment->getId(),
-                'user_id' => $user->getUuid()->toString(),
-                'amount' => $payment->getAmountInCents(),
-                'reason' => 'already_assigned'
-            ]);
-            
-            return [
-                'shop_orders_processed' => 0,
-                'shop_amount_used' => 0,
-                'catering_orders_processed' => 0,
-                'catering_amount_used' => 0,
-                'credit_added' => 0,
-                'total_amount' => $payment->getAmountInCents(),
-                'processing_notes' => ['Payment skipped - already assigned to recent order'],
-                'skipped_as_duplicate' => true
-            ];
-        }
+        // Double processing is prevented by identity, not by similarity: the
+        // import rejects a known PayPal transaction id, and a processed payment
+        // is marked as such. A same-amount heuristic on top of that would
+        // swallow a genuine second payment of the same amount.
 
         $amountInCents = $payment->getAmountInCents();
         $processingNotes = [];

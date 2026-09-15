@@ -156,6 +156,22 @@ class EmailService
     }
 
     /**
+     * Send a plain operational notice to a fixed address. Unlike the hook and
+     * template mails this needs no template in the database, because it is not
+     * addressed at a user but at whoever maintains the system.
+     */
+    public function sendNotification(string $to, string $subject, string $text): bool
+    {
+        $email = (new Mime\Email())
+            ->from($this->senderAddress)
+            ->to($to)
+            ->subject($subject)
+            ->text($text);
+
+        return $this->sendEmail($email, false);
+    }
+
+    /**
      * @throws TransportExceptionInterface
      */
     private function sendEmail(Mime\Email $email, bool $throw): bool

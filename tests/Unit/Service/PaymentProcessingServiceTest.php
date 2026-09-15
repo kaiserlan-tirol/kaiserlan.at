@@ -10,7 +10,6 @@ use App\Repository\TicketRepository;
 use App\Service\CateringService;
 use App\Service\PaymentProcessingService;
 use App\Service\ShopService;
-use App\Service\TransactionService;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\NullLogger;
 use Ramsey\Uuid\Uuid;
@@ -34,9 +33,6 @@ class PaymentProcessingServiceTest extends TestCase
         $userRepo = $this->createMock(IdmRepository::class);
         $userRepo->method('findOneById')->willReturn($user);
 
-        $transactionService = $this->createMock(TransactionService::class);
-        $transactionService->method('isDuplicatePayment')->willReturn(false);
-
         $shopService = $this->createMock(ShopService::class);
         $shopService->method('getOrderByUser')->willReturn([]);
 
@@ -52,7 +48,7 @@ class PaymentProcessingServiceTest extends TestCase
         // ...so no second credit booking may happen.
         $cateringService->expects($this->never())->method('addUserCredit');
 
-        $service = $this->buildService($cateringService, $shopService, $userRepo, $transactionService);
+        $service = $this->buildService($cateringService, $shopService, $userRepo);
 
         $result = $service->processPayment($payment);
 
@@ -76,9 +72,6 @@ class PaymentProcessingServiceTest extends TestCase
         $userRepo = $this->createMock(IdmRepository::class);
         $userRepo->method('findOneById')->willReturn($user);
 
-        $transactionService = $this->createMock(TransactionService::class);
-        $transactionService->method('isDuplicatePayment')->willReturn(false);
-
         $order = $this->createMock(\App\Entity\ShopOrder::class);
         $order->method('calculateTotal')->willReturn(2000);
         $order->method('getCreatedAt')->willReturn(new \DateTimeImmutable());
@@ -98,7 +91,7 @@ class PaymentProcessingServiceTest extends TestCase
                 'amount_credited' => 3000,
             ]);
 
-        $service = $this->buildService($cateringService, $shopService, $userRepo, $transactionService);
+        $service = $this->buildService($cateringService, $shopService, $userRepo);
 
         $result = $service->processPayment($payment);
 
@@ -114,7 +107,6 @@ class PaymentProcessingServiceTest extends TestCase
         CateringService $cateringService,
         ShopService $shopService,
         IdmRepository $userRepo,
-        TransactionService $transactionService,
         ?TicketRepository $ticketRepository = null
     ): PaymentProcessingService {
         $reflection = new \ReflectionClass(PaymentProcessingService::class);
@@ -125,7 +117,6 @@ class PaymentProcessingServiceTest extends TestCase
             'shopService' => $shopService,
             'userRepo' => $userRepo,
             'shopOrderRepository' => $this->createMock(ShopOrderRepository::class),
-            'transactionService' => $transactionService,
             'ticketRepository' => $ticketRepository ?? $this->ticketRepositoryWithTicket(),
             'logger' => new NullLogger(),
         ] as $name => $value) {
@@ -175,7 +166,6 @@ class PaymentProcessingServiceTest extends TestCase
             $cateringService,
             $shopService,
             $userRepo,
-            $this->createMock(TransactionService::class),
             $ticketRepository
         );
 
