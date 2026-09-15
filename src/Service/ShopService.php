@@ -544,6 +544,42 @@ class ShopService
     }
 
     /**
+     * Ticket statistic: all sold tickets and the addons booked on them, grouped by price.
+     *
+     * @param bool $paidOnly only handle paid orders
+     * @return array ['rows' => [['label' => string, 'count' => int, 'price' => int, 'revenue' => int], ...], 'total' => int]
+     */
+    public function getTicketStatistics(bool $paidOnly = false): array
+    {
+        $filter = $paidOnly ? ShopOrderStatus::STATUS_ACTIVE : ShopOrderStatus::STATUS_NOT_DEAD;
+        $tickets = $this->shopOrderPositionRepository->getTicketStatistics($filter);
+        $addons = $this->shopOrderPositionRepository->getAddonStatistics($filter);
+
+        $rows = [];
+        foreach ($tickets as $ticket) {
+            $rows[] = [
+                'label' => count($tickets) > 1 ? 'Tickets' : 'Tickets gesamt',
+                'count' => $ticket['count'],
+                'price' => $ticket['price'],
+                'revenue' => $ticket['revenue'],
+            ];
+        }
+        foreach ($addons as $addon) {
+            $rows[] = [
+                'label' => $addon['text'] !== '' ? $addon['text'] : "Addon #{$addon['addonId']}",
+                'count' => $addon['count'],
+                'price' => $addon['price'],
+                'revenue' => $addon['revenue'],
+            ];
+        }
+
+        return [
+            'rows' => $rows,
+            'total' => array_sum(array_column($rows, 'revenue')),
+        ];
+    }
+
+    /**
      * @param ShopAddon $addon The addon to be counted.
      * @param bool $paidOnly only handle paid orders
      * @return int The number of purchased items

@@ -107,6 +107,17 @@ class ShopController extends AbstractController
         ]);
     }
 
+    #[Route(path: '/stats', name: '_stats', methods: ['GET'])]
+    public function stats(Request $request): Response
+    {
+        $paidOnly = $request->query->getBoolean('paid');
+
+        return $this->render('admin/shop/stats.html.twig', [
+            'stats' => $this->shopService->getTicketStatistics($paidOnly),
+            'paidOnly' => $paidOnly,
+        ]);
+    }
+
     #[Route(path: '/addon', name: '_addon', methods: ['GET'])]
     public function indexAddons(): Response
     {
