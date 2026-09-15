@@ -198,6 +198,70 @@ class ShopOrderPositionRepository extends ServiceEntityRepository
     }
 
     /**
+     * Ticket positions grouped by their price.
+     *
+     * @param ShopOrderStatus[] $statusFilter
+     * @return array [['price' => int, 'count' => int, 'revenue' => int], ...]
+     */
+    public function getTicketStatistics(array $statusFilter = []): array
+    {
+        $qb = $this->getEntityManager()->createQueryBuilder();
+        $q = $qb->select('op.price as price', 'count(op) as cnt', 'SUM(op.price) as revenue')
+            ->from(ShopOrderPositionTicket::class, 'op')
+            ->join('op.order', 'o')
+            ->groupBy('op.price')
+            ->orderBy('op.price', 'DESC');
+
+        if (!empty($statusFilter)) {
+            $q
+                ->andWhere('o.status in (:status)')
+                ->setParameter('status', $statusFilter);
+        }
+
+        return array_map(fn($row) => [
+            'price' => (int) $row['price'],
+            'count' => (int) $row['cnt'],
+            'revenue' => (int) $row['revenue'],
+        ], $q->getQuery()->getArrayResult());
+    }
+
+    /**
+     * Addon positions grouped by addon and price.
+     *
+     * @param ShopOrderStatus[] $statusFilter
+     * @return array [['addonId' => int|null, 'text' => string, 'price' => int, 'count' => int, 'revenue' => int], ...]
+     */
+    public function getAddonStatistics(array $statusFilter = []): array
+    {
+        $qb = $this->getEntityManager()->createQueryBuilder();
+        $q = $qb->select(
+                'identity(op.addon) as aid',
+                'op.text as text',
+                'op.price as price',
+                'count(op) as cnt',
+                'SUM(op.price) as revenue'
+            )
+            ->from(ShopOrderPositionAddon::class, 'op')
+            ->join('op.order', 'o')
+            ->groupBy('op.addon', 'op.text', 'op.price')
+            ->orderBy('revenue', 'DESC');
+
+        if (!empty($statusFilter)) {
+            $q
+                ->andWhere('o.status in (:status)')
+                ->setParameter('status', $statusFilter);
+        }
+
+        return array_map(fn($row) => [
+            'addonId' => is_null($row['aid']) ? null : (int) $row['aid'],
+            'text' => (string) $row['text'],
+            'price' => (int) $row['price'],
+            'count' => (int) $row['cnt'],
+            'revenue' => (int) $row['revenue'],
+        ], $q->getQuery()->getArrayResult());
+    }
+
+    /**
      * Get addon counts for tickets that belong to redeemed tickets
      * @param UuidInterface $userUuid
      * @param ShopOrderStatus[] $statusFilter
